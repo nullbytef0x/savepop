@@ -6,20 +6,20 @@ services:
         init: true
         restart: unless-stopped
         environment:
-            API_URL: http://localhost:9000/
+            API_URL: http://localhost:5120/
             CORS_WILDCARD: "1"
             # Local development smoke tests exercise every supported service.
             RATELIMIT_MAX: "500"
             TUNNEL_RATELIMIT_MAX: "500"
         ports:
-            - "9000:9000"
+            - "5120:9000"
 
     web:
         build:
             context: .
             dockerfile: Dockerfile.web
             args:
-                WEB_DEFAULT_API: http://localhost:9000/
+                WEB_DEFAULT_API: http://localhost:5120/
                 WEB_HOST: ${WEB_HOST:-localhost:5173}
         init: true
         restart: unless-stopped
