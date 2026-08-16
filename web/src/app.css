@@ -1,0 +1,504 @@
+:root {
+    /* Storybook color system */
+    --color-eager-green: #58cc02;
+    --color-storybook-green: #d7ffb8;
+    --color-spark-blue: #1cb0f6;
+    --color-fresh-leaf: #a5ed6e;
+    --color-night-ink: #000437;
+    --color-paper-white: #ffffff;
+    --color-charcoal: #4b4b4b;
+    --color-pencil-gray: #777777;
+    --color-faded-gray: #afafaf;
+
+    --surface-paper-white: #ffffff;
+    --surface-storybook-green: #d7ffb8;
+    --surface-eager-green: #58cc02;
+    --surface-night-ink: #000437;
+    --border-subtle: #e5e5e5;
+
+    /* Existing semantic aliases */
+    --primary: var(--surface-paper-white);
+    --secondary: var(--color-charcoal);
+    --white: #ffffff;
+    --gray: var(--color-pencil-gray);
+    --red: #ed2236;
+    --medium-red: #ce3030;
+    --dark-red: #d61c2e;
+    --green: var(--color-eager-green);
+    --blue: var(--color-spark-blue);
+    --magenta: #eb445a;
+    --purple: #7057d9;
+    --orange: #f19a38;
+
+    /* Typography */
+    --font-feather: "Nunito", ui-rounded, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-duolingo-sans: "Nunito", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --text-caption: 13px;
+    --leading-caption: 1.23;
+    --text-nav-label: 15px;
+    --leading-nav-label: 1.33;
+    --tracking-nav-label: 0.795px;
+    --text-body: 17px;
+    --leading-body: 1.18;
+    --text-subheading: 19px;
+    --leading-subheading: 1.4;
+    --text-heading-sm: 32px;
+    --leading-heading-sm: 1.2;
+    --text-heading: 48px;
+    --leading-heading: 1.2;
+    --tracking-heading: -0.96px;
+    --text-display: 64px;
+    --leading-display: 1.2;
+    --tracking-display: -1.28px;
+
+    /* Spacing and layout */
+    --spacing-8: 8px;
+    --spacing-12: 12px;
+    --spacing-16: 16px;
+    --spacing-24: 24px;
+    --spacing-32: 32px;
+    --spacing-40: 40px;
+    --spacing-48: 48px;
+    --spacing-64: 64px;
+    --spacing-80: 80px;
+    --spacing-96: 96px;
+    --page-max-width: 1200px;
+    --app-header-height: 76px;
+
+    --radius-xl: 12px;
+    --radius-links: 12px;
+    --radius-buttons: 12px;
+    --radius-nav-items: 12px;
+    --padding: 12px;
+    --border-radius: 12px;
+    --motion-spring: cubic-bezier(0.22, 1.45, 0.36, 1);
+
+    --focus-ring: solid 3px var(--color-spark-blue);
+    --focus-ring-offset: 2px;
+
+    --button: #f7f7f7;
+    --button-hover: var(--color-storybook-green);
+    --button-press: #c8f5a6;
+    --button-active-hover: #48aa00;
+    --button-hover-transparent: color-mix(in srgb, var(--color-storybook-green) 65%, transparent);
+    --button-press-transparent: color-mix(in srgb, var(--color-eager-green) 20%, transparent);
+    --button-stroke: var(--color-faded-gray);
+    --button-text: var(--color-charcoal);
+    --button-box-shadow: none;
+    --button-elevated: #eeeeee;
+    --button-elevated-hover: #e2e2e2;
+    --button-elevated-press: #d8d8d8;
+    --button-elevated-shimmer: #f4f4f4;
+    --popover-glow: transparent;
+    --popup-bg: var(--surface-paper-white);
+    --popup-stroke: var(--color-faded-gray);
+    --dialog-backdrop: rgba(0, 4, 55, 0.32);
+    --sidebar-bg: var(--surface-paper-white);
+    --sidebar-highlight: var(--color-charcoal);
+    --sidebar-stroke: var(--border-subtle);
+    --content-border: var(--border-subtle);
+    --content-border-thickness: 0px;
+    --input-border: var(--color-faded-gray);
+    --toggle-bg: var(--color-faded-gray);
+    --toggle-bg-enabled: var(--color-eager-green);
+
+    --sidebar-width: 80px;
+    --sidebar-font-size: 12px;
+    --sidebar-inner-padding: 8px;
+    --sidebar-tab-padding: 10px;
+
+    /* reduce default inset by 5px if it's not 0 */
+    --sidebar-height-mobile: calc(
+        50px +
+            calc(
+                env(safe-area-inset-bottom) - 5px *
+                    sign(env(safe-area-inset-bottom))
+            )
+    );
+
+    --safe-area-inset-top: env(safe-area-inset-top);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom);
+
+    --switcher-padding: 3.5px;
+
+    /* used for fading the tab bar on scroll */
+    --sidebar-mobile-gradient: none;
+    --skeleton-gradient: var(--button-hover);
+    --skeleton-gradient-elevated: var(--button-elevated-shimmer);
+}
+
+[data-theme="dark"] {
+    --surface-paper-white: #11142f;
+    --surface-storybook-green: #244912;
+    --color-storybook-green: #244912;
+    --color-charcoal: #f5f6ff;
+    --color-pencil-gray: #b6b8cc;
+    --color-faded-gray: #565a7a;
+    --border-subtle: #303454;
+
+    --primary: var(--surface-paper-white);
+    --secondary: var(--color-charcoal);
+    --gray: var(--color-pencil-gray);
+    --blue: #55c6fb;
+    --green: var(--color-eager-green);
+    --button: #1a1e3f;
+    --button-hover: #244912;
+    --button-press: #315e1a;
+    --button-active-hover: #66db10;
+    --button-hover-transparent: rgba(88, 204, 2, 0.16);
+    --button-press-transparent: rgba(88, 204, 2, 0.24);
+    --button-stroke: var(--color-faded-gray);
+    --button-text: var(--color-charcoal);
+    --button-elevated: #262a4c;
+    --button-elevated-hover: #303557;
+    --button-elevated-press: #3b4064;
+    --button-elevated-shimmer: #34395d;
+    --popup-bg: #1a1e3f;
+    --popup-stroke: var(--color-faded-gray);
+    --dialog-backdrop: rgba(0, 2, 24, 0.72);
+    --sidebar-bg: var(--surface-paper-white);
+    --sidebar-highlight: var(--color-charcoal);
+    --sidebar-stroke: var(--border-subtle);
+    --content-border: var(--border-subtle);
+    --input-border: var(--color-faded-gray);
+    --toggle-bg: var(--color-faded-gray);
+    --toggle-bg-enabled: var(--color-eager-green);
+    color-scheme: dark;
+}
+
+/* fall back to less pretty value cuz chrome doesn't support sign() */
+[data-chrome="true"] {
+    --sidebar-height-mobile: calc(50px + env(safe-area-inset-bottom));
+}
+
+[data-theme="light"] [data-reduce-transparency="true"] {
+    --dialog-backdrop: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="dark"] [data-reduce-transparency="true"] {
+    --dialog-backdrop: rgba(0, 0, 0, 0.5);
+}
+
+html,
+body {
+    margin: 0;
+    height: 100vh;
+    overflow: hidden;
+    overscroll-behavior-y: none;
+    background: var(--surface-paper-white);
+    scroll-behavior: smooth;
+}
+
+* {
+    box-sizing: border-box;
+    font-family: var(--font-duolingo-sans);
+    user-select: none;
+    scrollbar-width: none;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+::-webkit-scrollbar {
+    display: none;
+}
+
+::selection {
+    color: var(--color-night-ink);
+    background: var(--color-storybook-green);
+}
+
+a {
+    color: var(--color-spark-blue);
+    text-underline-offset: 3px;
+    -webkit-touch-callout: none;
+}
+
+a:visited {
+    color: currentColor;
+}
+
+svg,
+img {
+    pointer-events: none;
+}
+
+button, .button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 7px 14px;
+    gap: 7px;
+    border: 2px solid var(--button-stroke);
+    border-radius: var(--radius-buttons);
+    font-size: 14px;
+    cursor: pointer;
+    background-color: var(--button);
+    color: var(--button-text);
+    box-shadow: none;
+    font-weight: 800;
+    transition: background-color 160ms ease, border-color 160ms ease, transform 220ms var(--motion-spring);
+}
+
+:focus-visible {
+    outline: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+}
+
+a:not(.sidebar-tab):not(.subnav-tab):focus-visible {
+    outline-offset: 4px;
+    border-radius: var(--radius-links);
+}
+
+.button.elevated {
+    background-color: var(--button-elevated);
+    border-color: transparent;
+}
+
+.button.active {
+    color: var(--color-charcoal);
+    background-color: var(--color-storybook-green);
+    border-color: var(--color-eager-green);
+}
+
+/* important is used because active class is toggled by state */
+/* and added to the end of the list, taking priority */
+.button.active:focus-visible,
+a.active:focus-visible {
+    color: var(--white) !important;
+    background-color: var(--blue) !important;
+}
+
+@media (hover: hover) {
+    .button:hover {
+        background-color: var(--button-hover);
+        border-color: var(--color-eager-green);
+        transform: translateY(-2px);
+    }
+
+    .button.elevated:not(.color):hover {
+        background-color: var(--button-elevated-hover);
+    }
+
+    .button.active:not(.color):hover {
+        background-color: var(--button-active-hover);
+    }
+}
+
+.button:active {
+    background-color: var(--button-press);
+    transform: scale(0.97);
+}
+
+.button.elevated:not(.color):active {
+    background-color: var(--button-elevated-press);
+}
+
+.button.elevated {
+    box-shadow: none;
+}
+
+.button.active:not(.color):active {
+    background-color: var(--button-active-hover);
+}
+
+button[disabled] {
+    cursor: default;
+}
+
+/* workaround for typing into inputs being ignored on iPadOS 15 */
+input {
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.center-column-container {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+button {
+    font-weight: 800;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--color-charcoal);
+    font-weight: 800;
+    margin-block: 0;
+}
+
+h1 {
+    font-size: 24px;
+    letter-spacing: -1px;
+}
+
+h2 {
+    font-size: 20px;
+    letter-spacing: -1px;
+}
+
+h3 {
+    font-size: 16px;
+}
+
+h4 {
+    font-size: 14.5px;
+}
+
+h5 {
+    font-size: 12px;
+}
+
+h6 {
+    font-size: 11px;
+}
+
+.subtext {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-pencil-gray);
+    line-height: 1.4;
+    padding: 0 var(--padding);
+    white-space: pre-line;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.long-text,
+.long-text *:not(h1, h2, h3, h4, h5, h6) {
+    line-height: 1.8;
+    font-size: 14.5px;
+    font-family: var(--font-duolingo-sans);
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.long-text,
+.long-text *:not(h1, h2, h3, h4, h5, h6, strong, em, del) {
+    font-weight: 400;
+}
+
+.long-text ul {
+    padding-inline-start: 30px;
+}
+
+.long-text li {
+    padding-left: 3px;
+}
+
+.long-text:not(.about) h1,
+.long-text:not(.about) h2,
+.long-text:not(.about) h3 {
+    user-select: text;
+    -webkit-user-select: text;
+    letter-spacing: 0;
+    margin-block-start: 1rem;
+}
+
+.long-text h3 {
+    font-size: 17px;
+}
+
+.long-text h2 {
+    font-size: 19px;
+}
+
+.long-text:not(.about) h3 {
+    margin-block-end: -0.5rem;
+}
+
+.long-text:not(.about) h2 {
+    font-size: 19px;
+    line-height: 1.3;
+    margin-block-end: -0.3rem;
+    padding: 6px 0;
+    border-bottom: 1.5px solid var(--button-elevated-hover);
+}
+
+.long-text img {
+    border-radius: 6px;
+}
+
+table,
+td,
+th {
+    border-spacing: 0;
+    border-style: solid;
+    border-width: 1px;
+    border-collapse: collapse;
+    text-align: center;
+    padding: 3px 8px;
+}
+
+code {
+    background: var(--button-elevated);
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+tr td:first-child,
+tr th:first-child {
+    text-align: right;
+}
+
+.long-text.about section p:first-of-type {
+    margin-block-start: 0.3em;
+}
+
+.long-text.about .heading-container {
+    padding-top: calc(var(--padding) / 2);
+}
+
+.long-text.about section:first-of-type .heading-container {
+    padding-top: 0;
+}
+
+
+@media screen and (max-width: 535px) {
+    .long-text,
+    .long-text *:not(h1, h2, h3, h4, h5, h6) {
+        font-size: 14px;
+    }
+}
+
+[data-reduce-motion="true"] * {
+    animation: none !important;
+    transition: none !important;
+}
+
+[data-reveal="ready"] {
+    opacity: 0;
+    transform: translateY(var(--reveal-distance, 28px));
+}
+
+[data-reveal="visible"] {
+    opacity: 1;
+    transform: none;
+    transition:
+        opacity 650ms ease var(--reveal-delay, 0ms),
+        transform 750ms var(--motion-spring) var(--reveal-delay, 0ms);
+}
+
+[data-reduce-motion="true"] [data-reveal] {
+    opacity: 1;
+    transform: none;
+}
+
+@keyframes spinner {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}

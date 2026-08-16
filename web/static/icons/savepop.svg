@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">SavePop</title>
+  <rect x="48" y="48" width="416" height="416" rx="128" fill="#58cc02" stroke="#4b4b4b" stroke-width="24"/>
+  <circle cx="421" cy="91" r="48" fill="#1cb0f6" stroke="#4b4b4b" stroke-width="20"/>
+  <circle cx="454" cy="169" r="27" fill="#d7ffb8" stroke="#4b4b4b" stroke-width="16"/>
+  <path fill="#fff" d="M314 162c-18-19-43-29-73-29-49 0-86 28-86 70 0 40 29 58 79 69 34 8 46 16 46 32 0 17-17 28-43 28-31 0-58-12-81-34l-38 47c30 31 70 47 117 47 56 0 93-28 93-75 0-42-28-62-83-74-31-7-42-14-42-28 0-15 15-25 39-25 25 0 48 9 67 26l35-44z"/>
+</svg>

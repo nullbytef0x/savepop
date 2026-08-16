@@ -1,0 +1,42 @@
+[
+    {
+        "name": "clip",
+        "url": "https://twitch.tv/xqc/clip/IronicBoxyTermiteSSSsss-iIiZjNeJN6Z-_7fp",
+        "params": {},
+        "expected": {
+            "code": 200,
+            "status": "redirect"
+        }
+    },
+    {
+        "name": "clip (isAudioOnly)",
+        "url": "https://twitch.tv/xqc/clip/IronicBoxyTermiteSSSsss-iIiZjNeJN6Z-_7fp",
+        "params": {
+            "downloadMode": "audio"
+        },
+        "expected": {
+            "code": 200,
+            "status": "tunnel"
+        }
+    },
+    {
+        "name": "clip (isAudioMuted)",
+        "url": "https://twitch.tv/xqc/clip/IronicBoxyTermiteSSSsss-iIiZjNeJN6Z-_7fp",
+        "params": {
+            "downloadMode": "mute"
+        },
+        "expected": {
+            "code": 200,
+            "status": "tunnel"
+        }
+    },
+    {
+        "name": "clip (mobile subdomain)",
+        "url": "https://m.twitch.tv/xqc/clip/IronicBoxyTermiteSSSsss-iIiZjNeJN6Z-_7fp",
+        "params": {},
+        "expected": {
+            "code": 200,
+            "status": "redirect"
+        }
+    }
+]

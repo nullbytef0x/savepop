@@ -1,0 +1,26 @@
+{
+    "page.general": "about SavePop",
+    "page.privacy": "privacy",
+    "page.terms": "responsible use",
+
+    "heading.purpose": "save public media without the clutter",
+    "heading.workflow": "how a download works",
+    "heading.formats": "formats and quality",
+    "heading.principles": "designed around people",
+    "heading.technology": "open technology",
+
+    "heading.privacy_scope": "privacy at a glance",
+    "heading.browser_data": "data stored in your browser",
+    "heading.request_data": "data needed for a request",
+    "heading.processing": "media processing",
+    "heading.analytics": "optional traffic analytics",
+    "heading.third_parties": "services involved",
+
+    "heading.terms_scope": "using SavePop responsibly",
+    "heading.allowed_use": "what SavePop is for",
+    "heading.content_rights": "respect creators and platforms",
+    "heading.prohibited_use": "what is not allowed",
+    "heading.availability": "availability and results",
+    "heading.liability": "your responsibility",
+    "heading.abuse": "reporting abuse or security issues"
+}
