@@ -64,6 +64,31 @@ const getAuthorization = async () => {
     }
 }
 
+// API tunnel URLs are created inside the processing container and may contain
+// its private Docker hostname. Route them back through the same API base the
+// browser successfully used (normally /api on the website origin).
+const normalizeTunnelURL = (value: string) => {
+    try {
+        const tunnel = new URL(value);
+        const apiBase = new URL(`${currentApiURL()}/`);
+        const relativeTunnel = `${tunnel.pathname.replace(/^\/+/, "")}${tunnel.search}${tunnel.hash}`;
+
+        return new URL(relativeTunnel, apiBase).toString();
+    } catch {
+        return value;
+    }
+}
+
+const normalizeTunnelResponse = (response: Optional<CobaltAPIResponse>) => {
+    if (response?.status === "tunnel") {
+        response.url = normalizeTunnelURL(response.url);
+    } else if (response?.status === "local-processing") {
+        response.tunnel = response.tunnel.map(normalizeTunnelURL);
+    }
+
+    return response;
+}
+
 const request = async (requestBody: CobaltSaveRequestBody, justRetried = false) => {
     await getServerInfo();
 
@@ -126,7 +151,7 @@ const request = async (requestBody: CobaltSaveRequestBody, justRetried = false) 
         return request(requestBody, true);
     }
 
-    return response;
+    return normalizeTunnelResponse(response);
 }
 
 const probeCobaltTunnel = async (url: string) => {

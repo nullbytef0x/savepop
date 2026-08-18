@@ -6,7 +6,9 @@ services:
         init: true
         restart: unless-stopped
         environment:
-            API_URL: ${SAVEPOP_API_URL:-http://localhost:5120/}
+            # Used internally when the API creates tunnel URLs. The frontend
+            # rewrites those URLs to its same-origin /api proxy.
+            API_URL: ${SAVEPOP_API_URL:-http://api:5120/}
             API_PORT: "5120"
             CORS_WILDCARD: "1"
             # Local development smoke tests exercise every supported service.
@@ -20,7 +22,9 @@ services:
             context: .
             dockerfile: Dockerfile.web
             args:
-                WEB_DEFAULT_API: ${SAVEPOP_API_URL:-http://localhost:5120/}
+                # Browsers reach the API through nginx, so remote visitors
+                # never try to connect to localhost on their own computer.
+                WEB_DEFAULT_API: ${SAVEPOP_WEB_API_URL:-/api/}
                 WEB_HOST: ${WEB_HOST:-localhost:5173}
         init: true
         restart: unless-stopped
