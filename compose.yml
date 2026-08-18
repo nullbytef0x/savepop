@@ -7,12 +7,13 @@ services:
         restart: unless-stopped
         environment:
             API_URL: ${SAVEPOP_API_URL:-http://localhost:5120/}
+            API_PORT: "5120"
             CORS_WILDCARD: "1"
             # Local development smoke tests exercise every supported service.
             RATELIMIT_MAX: "500"
             TUNNEL_RATELIMIT_MAX: "500"
         ports:
-            - "5120:9000"
+            - "5120:5120"
 
     web:
         build:

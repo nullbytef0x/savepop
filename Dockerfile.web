@@ -13,7 +13,7 @@ COPY . /app
 RUN --mount=type=cache,id=pnpm-web,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
-ARG WEB_DEFAULT_API=http://localhost:9000/
+ARG WEB_DEFAULT_API=http://localhost:5120/
 ARG WEB_HOST
 
 ENV WEB_DEFAULT_API=$WEB_DEFAULT_API

@@ -2,7 +2,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const apiURL = new URL(process.env.SMOKE_API_URL || "http://localhost:9000/");
+const apiURL = new URL(process.env.SMOKE_API_URL || "http://localhost:5120/");
 const sampleSize = Number(process.env.SMOKE_SAMPLE_BYTES || 64 * 1024);
 const testDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "tests");
 

@@ -28,5 +28,5 @@ COPY --from=build --chown=node:node /app/.git /app/.git
 
 USER node
 
-EXPOSE 9000
+EXPOSE 5120
 CMD [ "node", "src/cobalt" ]
