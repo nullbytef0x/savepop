@@ -1,6 +1,5 @@
 <script lang="ts">
     import { t } from "$lib/i18n/translations";
-    import { contacts, docs } from "$lib/env";
 
     import SectionHeading from "$components/misc/SectionHeading.svelte";
 </script>
@@ -49,15 +48,4 @@ Additional controls in [settings](/settings) let you choose quality, codecs, con
 SavePop is designed to be quick to understand, comfortable on mobile and desktop, and respectful of your attention. The interface avoids deceptive buttons, forced registrations, behavioral advertising, and artificial download limits.
 
 Accessibility preferences and download settings stay on your device so the experience remains consistent without requiring a profile.
-</section>
-
-<section id="technology">
-<SectionHeading
-    title={$t("about.heading.technology")}
-    sectionId="technology"
-/>
-
-SavePop runs a dedicated processing backend that resolves public media links, selects available formats, and streams the result to your device. The backend is built from the open-source [Cobalt codebase]({contacts.github}).
-
-The processing server is licensed under AGPL-3.0, and the frontend is licensed under CC-BY-NC-SA 4.0. Technical users can review the source and [learn how to host a processing instance]({docs.instanceHosting}).
 </section>

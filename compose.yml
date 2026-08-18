@@ -6,7 +6,7 @@ services:
         init: true
         restart: unless-stopped
         environment:
-            API_URL: http://localhost:5120/
+            API_URL: ${SAVEPOP_API_URL:-http://localhost:5120/}
             CORS_WILDCARD: "1"
             # Local development smoke tests exercise every supported service.
             RATELIMIT_MAX: "500"
@@ -19,7 +19,7 @@ services:
             context: .
             dockerfile: Dockerfile.web
             args:
-                WEB_DEFAULT_API: http://localhost:5120/
+                WEB_DEFAULT_API: ${SAVEPOP_API_URL:-http://localhost:5120/}
                 WEB_HOST: ${WEB_HOST:-localhost:5173}
         init: true
         restart: unless-stopped
