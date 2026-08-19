@@ -1,6 +1,5 @@
 <script lang="ts">
     import { t } from "$lib/i18n/translations";
-    import { contacts } from "$lib/env";
     import SectionHeading from "$components/misc/SectionHeading.svelte";
 </script>
 
@@ -72,15 +71,4 @@ There is no guarantee that every link, quality, codec, subtitle, or metadata fie
 You are responsible for the links you submit, the files you save, and how you use or distribute them. SavePop does not review or endorse downloaded content and is provided without warranties to the extent permitted by law.
 
 Keep backups of important files and verify downloaded content before opening or sharing it.
-</section>
-
-<section id="abuse">
-<SectionHeading
-    title={$t("about.heading.abuse")}
-    sectionId="abuse"
-/>
-
-For a reproducible software bug or security concern, use the project's [GitHub issue tracker]({contacts.github}). Do not include private links, credentials, personal information, or copyrighted files in a public report.
-
-For content complaints, contact the website or processing-instance operator responsible for the deployment. SavePop does not host the original posts shown on supported platforms.
 </section>
