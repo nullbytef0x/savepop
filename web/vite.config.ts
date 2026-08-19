@@ -69,7 +69,7 @@ const generateSitemap: PluginOption = {
             return;
         }
 
-        await createSitemap(`https://${process.env.WEB_HOST}`, {
+        await createSitemap('https://savepop.online', {
             changeFreq: 'monthly',
             outDir: '.svelte-kit/output/prerendered/pages',
             resetTime: true
