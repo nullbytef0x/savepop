@@ -7,6 +7,7 @@ import {
     normalizeQuality,
     selectFormats,
 } from "../processing/services/youtube.js";
+import { normalizeYouTubePlaylistURL } from "../processing/services/youtube-playlist.js";
 
 const direct = {
     protocol: "https",
@@ -89,4 +90,19 @@ test("converts Cobalt JSON cookies without exposing them to yt-dlp arguments", (
 test("keeps Netscape cookie exports compatible", () => {
     const source = "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t0\tSID\ttest";
     assert.equal(cookieSourceToNetscape(source), `${source}\n`);
+});
+
+test("accepts YouTube playlist and watch URLs while rejecting other hosts", () => {
+    assert.equal(
+        normalizeYouTubePlaylistURL("https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PL1234567890"),
+        "https://www.youtube.com/playlist?list=PL1234567890",
+    );
+    assert.equal(
+        normalizeYouTubePlaylistURL("https://youtu.be/dQw4w9WgXcQ?list=PLabcdefghij"),
+        "https://www.youtube.com/playlist?list=PLabcdefghij",
+    );
+    assert.equal(
+        normalizeYouTubePlaylistURL("https://example.com/playlist?list=PL1234567890"),
+        undefined,
+    );
 });

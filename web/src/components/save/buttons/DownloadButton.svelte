@@ -3,6 +3,7 @@
     import { t } from "$lib/i18n/translations";
     import { hapticSwitch } from "$lib/haptics";
     import { savingHandler } from "$lib/api/saving-handler";
+    import { isYouTubePlaylistURL, revealYouTubePlaylist } from "$lib/youtube-playlist";
     import { downloadButtonState } from "$lib/state/omnibox";
 
     import type { CobaltDownloadButtonState } from "$lib/types/omnibox";
@@ -49,6 +50,14 @@
     );
 
     onDestroy(() => unsubscribe());
+
+    const download = () => {
+        if (isYouTubePlaylistURL(url)) {
+            revealYouTubePlaylist();
+            return;
+        }
+        savingHandler({ url });
+    };
 </script>
 
 <button
@@ -56,7 +65,7 @@
     {disabled}
     on:click={() => {
         hapticSwitch();
-        savingHandler({ url });
+        download();
     }}
     aria-label={buttonAltText}
 >

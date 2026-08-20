@@ -50,6 +50,10 @@ export const apiSchema = z.object({
                      .regex(/^[0-9a-zA-Z\-]+$/)
                      .optional(),
 
+    subtitleMode: z.enum(
+        ["none", "embed", "separate"]
+    ).default("embed"),
+
     disableMetadata: z.boolean().default(false),
 
     allowH265: z.boolean().default(false),

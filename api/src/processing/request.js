@@ -46,7 +46,19 @@ export function createResponse(responseType, responseData) {
             case "tunnel":
                 response = {
                     url: createStream(responseData),
-                    filename: responseData?.filename
+                    filename: responseData?.filename,
+                    subtitle: responseData?.separateSubtitles?.url ? {
+                        url: createStream({
+                            type: "proxy",
+                            url: responseData.separateSubtitles.url,
+                            service: `${responseData.service}-subtitles`,
+                            filename: responseData.separateSubtitles.filename,
+                            requestIP: responseData.requestIP,
+                            headers: responseData.headers,
+                        }),
+                        filename: responseData.separateSubtitles.filename,
+                        language: responseData.separateSubtitles.language,
+                    } : undefined,
                 }
                 break;
 

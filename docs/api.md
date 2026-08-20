@@ -5,6 +5,7 @@ methods, acceptable values, headers, responses and everything else related to ma
 > hosted api instances (such as `api.cobalt.tools`) use bot protection and are **not** intended to be used in other projects without explicit permission. if you want to use the cobalt api, you should [host your own instance](/docs/run-an-instance.md) or ask an instance owner for access.
 
 - [POST /](#post)
+- [POST /playlist](#post-playlist)
 - [POST /session](#post-session)
 - [GET /](#get)
 - [GET /tunnel](#get-tunnel)
@@ -80,6 +81,7 @@ all keys except for `url` are optional. value options are separated by `/`.
 | `alwaysProxy`     | `boolean` | always tunnel all files, even when not necessary                | `false`    |
 | `localProcessing` | `string`  | `disabled / preferred / forced`                                 | `disabled` |
 | `subtitleLang`    | `string`  | any valid ISO 639-1 language code                               | *none*     |
+| `subtitleMode`    | `string`  | `none / embed / separate` (YouTube)                             | `embed`    |
 
 #### service-specific options
 | key                     | type      | description/value                                 | default |
@@ -109,6 +111,7 @@ the response will always be a JSON object containing the `status` key, which is 
 | `status`     | `string` | `tunnel / redirect`                                        |
 | `url`        | `string` | url for the cobalt tunnel, or redirect to an external link |
 | `filename`   | `string` | cobalt-generated filename for the file being downloaded    |
+| `subtitle`   | `object` | separate subtitle tunnel, filename, and language (optional) |
 
 ### local processing response
 | key          | type       | value                                                         |
@@ -186,6 +189,21 @@ all keys in this table are optional.
 |:-------------|:---------|:----------------------------------------------------------------------------|
 | `service`    | `string` | origin service (optional)                                                   |
 | `limit`      | `number` | the maximum downloadable video duration or the rate limit window (optional) |
+
+## POST `/playlist`
+returns lightweight metadata for a YouTube playlist. it uses the same headers,
+authentication, and rate limiting as `POST /`.
+
+### request body
+```json
+{ "url": "https://www.youtube.com/playlist?list=..." }
+```
+
+### response body
+the response has `status: "playlist"` and a `playlist` object containing its
+`id`, `title`, `uploader`, optional `thumbnail`, and up to 100 available
+`entries`. each entry includes `id`, `title`, `duration`, `thumbnail`, `url`,
+and its playlist `index`.
 
 ## POST `/session`
 used for generating JWT tokens, if enabled. currently, cobalt only supports

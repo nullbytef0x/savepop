@@ -74,7 +74,9 @@ export default async function({ host, patternMatch, params, authType }) {
         }
 
         const subtitleLang =
-            params.subtitleLang !== "none" ? params.subtitleLang : undefined;
+            params.subtitleMode !== "none" && params.subtitleLang !== "none"
+                ? params.subtitleLang
+                : undefined;
 
         switch (host) {
             case "twitter":
@@ -121,6 +123,7 @@ export default async function({ host, patternMatch, params, authType }) {
                     dubLang: params.youtubeDubLang,
                     youtubeHLS,
                     subtitleLang,
+                    subtitleMode: params.subtitleMode,
                 }
 
                 if (url.hostname === "music.youtube.com" || isAudioOnly) {

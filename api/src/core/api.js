@@ -7,6 +7,7 @@ import { getCommit, getBranch, getRemote, getVersion } from "@imput/version-info
 import jwt from "../security/jwt.js";
 import stream from "../stream/stream.js";
 import match from "../processing/match.js";
+import youtubePlaylist from "../processing/services/youtube-playlist.js";
 
 import { env } from "../config.js";
 import { extract } from "../processing/url.js";
@@ -121,7 +122,9 @@ export const runAPI = async (express, app, __dirname, isPrimary = true) => {
         ...corsConfig,
     }));
 
-    app.post('/', (req, res, next) => {
+    const saveRoutes = ['/', '/playlist'];
+
+    app.post(saveRoutes, (req, res, next) => {
         if (!acceptRegex.test(req.header('Accept'))) {
             return fail(res, "error.api.header.accept");
         }
@@ -131,7 +134,7 @@ export const runAPI = async (express, app, __dirname, isPrimary = true) => {
         next();
     });
 
-    app.post('/', (req, res, next) => {
+    app.post(saveRoutes, (req, res, next) => {
         if (!env.apiKeyURL) {
             return next();
         }
@@ -159,7 +162,7 @@ export const runAPI = async (express, app, __dirname, isPrimary = true) => {
         return next();
     });
 
-    app.post('/', (req, res, next) => {
+    app.post(saveRoutes, (req, res, next) => {
         if (!env.sessionEnabled || req.rateLimitKey) {
             return next();
         }
@@ -191,7 +194,7 @@ export const runAPI = async (express, app, __dirname, isPrimary = true) => {
         next();
     });
 
-    app.post('/', apiLimiter);
+    app.post(saveRoutes, apiLimiter);
     app.use('/', express.json({ limit: 1024 }));
 
     app.use('/', (err, _, res, next) => {
@@ -229,6 +232,30 @@ export const runAPI = async (express, app, __dirname, isPrimary = true) => {
             res.json(jwt.generate(getIP(req, 32)));
         } catch {
             return fail(res, "error.api.generic");
+        }
+    });
+
+    app.post('/playlist', async (req, res) => {
+        if (!req.body?.url || typeof req.body.url !== "string") {
+            return fail(res, "error.api.link.missing");
+        }
+
+        try {
+            const result = await youtubePlaylist(req.body.url);
+            if (result.error) {
+                return fail(res, `error.api.${result.error}`, {
+                    service: friendlyServiceName("youtube"),
+                });
+            }
+
+            return res.status(200).json({
+                status: "playlist",
+                playlist: result.playlist,
+            });
+        } catch {
+            return fail(res, "error.api.fetch.critical", {
+                service: friendlyServiceName("youtube"),
+            });
         }
     });
 

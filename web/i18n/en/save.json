@@ -23,5 +23,35 @@
 
     "label.community_instance": "connected to community processing",
 
-    "tooltip.captcha": "cloudflare turnstile is checking if you're not a bot, please wait!"
+    "tooltip.captcha": "cloudflare turnstile is checking if you're not a bot, please wait!",
+
+    "playlist.youtube_playlist": "YouTube playlist",
+    "playlist.videos": "videos",
+    "playlist.loading": "fetching this playlist",
+    "playlist.loading_hint": "loading titles, thumbnails and durations from YouTube…",
+    "playlist.error.title": "couldn't load this playlist",
+    "playlist.retry": "try again",
+    "playlist.format": "default format",
+    "playlist.maximum": "MP4 maximum quality",
+    "playlist.audio_track": "audio track",
+    "playlist.subtitles": "subtitles",
+    "playlist.subtitles.none": "no subtitles",
+    "playlist.subtitles.embed": "embed in video",
+    "playlist.subtitles.separate": "separate SRT files",
+    "playlist.subtitle_language": "subtitle language",
+    "playlist.select_all": "select all",
+    "playlist.filter": "filter by title…",
+    "playlist.selected": "{{value}} selected",
+    "playlist.select_video": "select {{value}}",
+    "playlist.truncated": "showing the first 100 available videos in this playlist.",
+    "playlist.zip_hint": "selected videos are processed one at a time and packed into one ZIP file.",
+    "playlist.download_zip": "download {{value}} as ZIP",
+    "playlist.downloading": "building ZIP…",
+    "playlist.status.waiting": "waiting",
+    "playlist.status.preparing": "preparing",
+    "playlist.status.downloading": "downloading",
+    "playlist.status.done": "added to ZIP",
+    "playlist.status.error": "failed",
+    "playlist.error.download": "the playlist download failed. please try again.",
+    "playlist.error.unsupported_response": "the server returned a response that playlist downloads cannot process."
 }

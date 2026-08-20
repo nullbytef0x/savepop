@@ -167,7 +167,7 @@ export const mapYtDlpError = value => {
     return "youtube.api_error";
 };
 
-const getYtDlpInfo = async id => withExtractionSlot(async () => {
+export const getYtDlpJSON = async (url, extraArgs = []) => withExtractionSlot(async () => {
     let cookieJar;
 
     try {
@@ -177,11 +177,11 @@ const getYtDlpInfo = async id => withExtractionSlot(async () => {
             "--ignore-config",
             "--dump-single-json",
             "--skip-download",
-            "--no-playlist",
             "--no-warnings",
             "--no-progress",
             "--cache-dir", join(tmpdir(), "savepop-yt-dlp-cache"),
             "--js-runtimes", `node:${process.execPath}`,
+            ...extraArgs,
         ];
 
         if (cookieJar.path) {
@@ -195,7 +195,7 @@ const getYtDlpInfo = async id => withExtractionSlot(async () => {
             );
         }
 
-        args.push(`https://www.youtube.com/watch?v=${id}`);
+        args.push(url);
 
         const { stdout } = await execFileAsync(env.ytDlpPath, args, {
             encoding: "utf8",
@@ -216,6 +216,11 @@ const getYtDlpInfo = async id => withExtractionSlot(async () => {
         }
     }
 });
+
+const getYtDlpInfo = id => getYtDlpJSON(
+    `https://www.youtube.com/watch?v=${id}`,
+    ["--no-playlist"],
+);
 
 export const normalizeQuality = format => {
     const dimensions = [format?.width, format?.height].filter(Number.isFinite);
@@ -337,17 +342,25 @@ export const selectFormats = (info, options) => {
 const chooseSubtitles = (info, language) => {
     if (!language) return;
 
-    const key = Object.keys(info.subtitles || {}).find(code =>
+    const manualSubtitles = info.subtitles || {};
+    const automaticSubtitles = info.automatic_captions || {};
+    const key = Object.keys(manualSubtitles).find(code =>
+        code === language || code.startsWith(`${language}-`)
+    ) || Object.keys(automaticSubtitles).find(code =>
         code === language || code.startsWith(`${language}-`)
     );
     if (!key) return;
 
-    const formats = info.subtitles[key] || [];
+    const formats = manualSubtitles[key] || automaticSubtitles[key] || [];
     const subtitle = formats.find(format => format.ext === "vtt" && format.url)
         || formats.find(format => format.url);
 
     if (!subtitle) return;
-    return { language: key, url: subtitle.url };
+    return {
+        language: key,
+        url: subtitle.url,
+        extension: subtitle.ext || "vtt",
+    };
 };
 
 const normalizeDate = value => {
@@ -419,11 +432,13 @@ export default async function (options) {
         return { error: "youtube.no_matching_format" };
     }
 
-    const subtitles = !options.isAudioOnly
+    const selectedSubtitles = !options.isAudioOnly
         ? chooseSubtitles(info, options.subtitleLang)
         : undefined;
     const fileMetadata = getFileMetadata(info);
-    if (subtitles) fileMetadata.sublanguage = subtitles.language;
+    if (selectedSubtitles && options.subtitleMode !== "separate") {
+        fileMetadata.sublanguage = selectedSubtitles.language;
+    }
 
     const selectedLanguage = selected.audio.language;
     const dubbedLanguage = options.dubLang && languageMatches(selected.audio, options.dubLang)
@@ -479,7 +494,12 @@ export default async function (options) {
     return {
         type: "merge",
         urls: [selected.video.url, selected.audio.url],
-        subtitles: subtitles?.url,
+        subtitles: options.subtitleMode !== "separate"
+            ? selectedSubtitles?.url
+            : undefined,
+        separateSubtitles: options.subtitleMode === "separate"
+            ? selectedSubtitles
+            : undefined,
         filenameAttributes,
         fileMetadata,
         isHLS: false,

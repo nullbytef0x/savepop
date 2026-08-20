@@ -4,6 +4,7 @@
     import { reveal } from "$lib/motion/reveal";
 
     import Omnibox from "$components/save/Omnibox.svelte";
+    import YouTubePlaylist from "$components/save/YouTubePlaylist.svelte";
     import Meowbalt from "$components/misc/Meowbalt.svelte";
     import ServiceIcon from "$components/save/ServiceIcon.svelte";
     import SupportedServices from "$components/save/SupportedServices.svelte";
@@ -180,6 +181,8 @@
                     </div>
                 </div>
             </div>
+
+            <YouTubePlaylist />
 
             <a class="scroll-cue" href="#how-it-works">
                 <span>{$t("home.hero.scroll")}</span>

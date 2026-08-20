@@ -13,6 +13,7 @@
     import { hapticSwitch } from "$lib/haptics";
     import { updateSetting } from "$lib/state/settings";
     import { savingHandler } from "$lib/api/saving-handler";
+    import { isYouTubePlaylistURL, revealYouTubePlaylist } from "$lib/youtube-playlist";
     import { pasteLinkFromClipboard } from "$lib/clipboard";
     import { turnstileEnabled, turnstileSolved } from "$lib/state/turnstile";
 
@@ -58,6 +59,14 @@
     let downloadable = $derived(validLink($link));
     let clearVisible = $derived($link && !isLoading);
 
+    const submitLink = () => {
+        if (isYouTubePlaylistURL($link)) {
+            revealYouTubePlaylist();
+            return;
+        }
+        savingHandler({ url: $link });
+    };
+
     $effect (() => {
         if (linkPrefill) {
             // prefilled link may be uri encoded
@@ -73,7 +82,7 @@
             // clear link prefill to avoid extra effects
             linkPrefill = "";
 
-            savingHandler({ url: $link });
+            submitLink();
         }
     });
 
@@ -93,7 +102,7 @@
             $link = linkMatch[0].split('，')[0];
 
             await tick(); // wait for button to render
-            savingHandler({ url: $link });
+            submitLink();
         }
     };
 
@@ -111,7 +120,7 @@
         }
 
         if (e.key === "Enter" && validLink($link) && isFocused) {
-            savingHandler({ url: $link });
+            submitLink();
         }
 
         if (["Escape", "Clear"].includes(e.key) && isFocused) {

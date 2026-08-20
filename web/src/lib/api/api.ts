@@ -9,7 +9,12 @@ import cachedInfo from "$lib/state/server-info";
 import { getServerInfo } from "$lib/api/server-info";
 
 import type { Optional } from "$lib/types/generic";
-import type { CobaltAPIResponse, CobaltErrorResponse, CobaltSaveRequestBody } from "$lib/types/api";
+import type {
+    CobaltAPIResponse,
+    CobaltErrorResponse,
+    CobaltSaveRequestBody,
+    YouTubePlaylistAPIResponse,
+} from "$lib/types/api";
 
 const waitForTurnstile = async () => {
     return await new Promise((resolve, reject) => {
@@ -82,11 +87,60 @@ const normalizeTunnelURL = (value: string) => {
 const normalizeTunnelResponse = (response: Optional<CobaltAPIResponse>) => {
     if (response?.status === "tunnel") {
         response.url = normalizeTunnelURL(response.url);
+        if (response.subtitle) {
+            response.subtitle.url = normalizeTunnelURL(response.subtitle.url);
+        }
     } else if (response?.status === "local-processing") {
         response.tunnel = response.tunnel.map(normalizeTunnelURL);
     }
 
     return response;
+}
+
+const requestPlaylist = async (url: string, justRetried = false): Promise<YouTubePlaylistAPIResponse> => {
+    await getServerInfo();
+
+    if (!get(cachedInfo)) {
+        return {
+            status: "error",
+            error: { code: "error.api.unreachable" },
+        } as CobaltErrorResponse;
+    }
+
+    const authorization = await getAuthorization();
+    if (authorization && typeof authorization !== "string") {
+        return authorization;
+    }
+
+    const response: Optional<YouTubePlaylistAPIResponse> = await fetch(
+        `${currentApiURL()}/playlist`,
+        {
+            method: "POST",
+            signal: AbortSignal.timeout(60_000),
+            body: JSON.stringify({ url }),
+            headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                ...(authorization ? { "Authorization": authorization } : {}),
+            },
+        },
+    )
+    .then(result => result.json())
+    .catch(() => undefined);
+
+    if (
+        response?.status === "error"
+        && response.error.code === "error.api.auth.jwt.invalid"
+        && !justRetried
+    ) {
+        resetSession();
+        return requestPlaylist(url, true);
+    }
+
+    return response || {
+        status: "error",
+        error: { code: "error.api.unreachable" },
+    } as CobaltErrorResponse;
 }
 
 const request = async (requestBody: CobaltSaveRequestBody, justRetried = false) => {
@@ -164,5 +218,6 @@ const probeCobaltTunnel = async (url: string) => {
 
 export default {
     request,
+    requestPlaylist,
     probeCobaltTunnel,
 }

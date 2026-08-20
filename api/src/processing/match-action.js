@@ -34,6 +34,7 @@ export default function({
             requestIP,
             originalRequest: r.originalRequest,
             subtitles: r.subtitles,
+            separateSubtitles: r.separateSubtitles,
             cover: !disableMetadata ? r.cover : false,
             cropCover: !disableMetadata ? r.cropCover : false,
         },
@@ -246,6 +247,14 @@ export default function({
 
     if (defaultParams.filename && (action === "picker" || action === "audio")) {
         defaultParams.filename += `.${audioFormat}`;
+    }
+
+    if (defaultParams.filename && defaultParams.separateSubtitles?.url) {
+        const [name] = splitFilenameExtension(defaultParams.filename);
+        defaultParams.separateSubtitles = {
+            ...defaultParams.separateSubtitles,
+            filename: `${name}.${defaultParams.separateSubtitles.extension || "vtt"}`,
+        };
     }
 
     // alwaysProxy is set to true in match.js if localProcessing is forced

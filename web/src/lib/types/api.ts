@@ -41,7 +41,33 @@ type CobaltRedirectResponse = {
 
 type CobaltTunnelResponse = {
     status: CobaltResponseType.Tunnel,
+    subtitle?: {
+        url: string,
+        filename: string,
+        language?: string,
+    },
 } & CobaltPartialURLResponse;
+
+export type YouTubePlaylistEntry = {
+    id: string,
+    title: string,
+    duration?: number,
+    thumbnail?: string,
+    url: string,
+    index: number,
+};
+
+export type YouTubePlaylistResponse = {
+    status: 'playlist',
+    playlist: {
+        id: string,
+        title: string,
+        uploader: string,
+        thumbnail?: string,
+        entries: YouTubePlaylistEntry[],
+        truncated: boolean,
+    },
+};
 
 export const CobaltFileMetadataKeys = [
     'album',
@@ -113,10 +139,12 @@ export type CobaltServerInfo = {
 // this allows for extra properties, which is not ideal,
 // but i couldn't figure out how to make a strict partial :(
 export type CobaltSaveRequestBody =
-    { url: string } & Partial<Omit<CobaltSettings['save'], 'savingMethod'>>;
+    { url: string, subtitleMode?: 'none' | 'embed' | 'separate' }
+    & Partial<Omit<CobaltSettings['save'], 'savingMethod'>>;
 
 export type CobaltSessionResponse = CobaltSession | CobaltErrorResponse;
 export type CobaltServerInfoResponse = CobaltServerInfo | CobaltErrorResponse;
+export type YouTubePlaylistAPIResponse = YouTubePlaylistResponse | CobaltErrorResponse;
 
 export type CobaltAPIResponse = CobaltErrorResponse
                               | CobaltPickerResponse
