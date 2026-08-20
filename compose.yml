@@ -11,14 +11,27 @@ services:
             API_URL: ${SAVEPOP_API_URL:-http://api:5120/}
             API_PORT: "5120"
             CORS_WILDCARD: "1"
-            COOKIE_PATH: "/cookies.json"
+            YOUTUBE_SESSION_SERVER: "http://yt-session-generator:8080/"
+            YOUTUBE_SESSION_INNERTUBE_CLIENT: "WEB_EMBEDDED"
             # Local development smoke tests exercise every supported service.
             RATELIMIT_MAX: "500"
             TUNNEL_RATELIMIT_MAX: "500"
+        depends_on:
+            yt-session-generator:
+                condition: service_healthy
         ports:
             - "5120:5120"
-        volumes:
-            - ./cookies.json:/cookies.json
+
+    yt-session-generator:
+        image: ghcr.io/imputnet/yt-session-generator:webserver
+        init: true
+        restart: unless-stopped
+        healthcheck:
+            test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/token', timeout=5)"]
+            interval: 10s
+            timeout: 10s
+            retries: 60
+            start_period: 20s
 
     web:
         build:

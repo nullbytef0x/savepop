@@ -37,12 +37,14 @@ const updateSession = (newSession) => {
 
 const loadSession = async () => {
     const sessionServerUrl = new URL(env.ytSessionServer);
-    sessionServerUrl.pathname = "/get_pot";
+    sessionServerUrl.pathname = "/token";
 
-    const newSession = await fetch(
-        sessionServerUrl,
-        { method: 'POST', dispatcher: defaultAgent }
-    ).then(a => a.json());
+    const response = await fetch(sessionServerUrl, { dispatcher: defaultAgent });
+    if (!response.ok) {
+        throw new Error(`youtube session server returned ${response.status}`);
+    }
+
+    const newSession = await response.json();
 
     validateSession(newSession);
 
