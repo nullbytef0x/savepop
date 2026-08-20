@@ -59,5 +59,6 @@
     "playlist.error.download": "the playlist download failed. please try again.",
     "playlist.error.empty_file": "the server returned an empty file, so the ZIP was stopped.",
     "playlist.error.empty_zip": "the generated ZIP was empty. please try again.",
+    "playlist.error.partial": "{{value}} selected item(s) failed after retrying. the completed files were still added to the ZIP.",
     "playlist.error.unsupported_response": "the server returned a response that playlist downloads cannot process."
 }

@@ -141,8 +141,12 @@ async function handleChunkedStream(streamInfo, res) {
             }
         }
 
+        // Some valid googlevideo audio URLs omit `clen` and reject both HEAD
+        // and tiny range probes. A regular streamed request still works for
+        // these URLs, so let FFmpeg consume that instead of returning an
+        // empty internal tunnel.
         if (!size) {
-            return cleanup();
+            return handleGenericStream(streamInfo, res);
         }
 
         const generator = readChunks(streamInfo, size);
@@ -190,7 +194,12 @@ async function handleGenericStream(streamInfo, res) {
             if (fileResponse.statusCode >= 200 && fileResponse.statusCode <= 299) {
                 break;
             }
-            if (attempt < 2) await fileResponse.body.dump().catch(() => {});
+            if (attempt < 2) {
+                await fileResponse.body.dump().catch(() => {});
+                if (streamInfo.transplant) {
+                    await streamInfo.transplant(streamInfo.dispatcher).catch(() => {});
+                }
+            }
         }
         if (!fileResponse) return cleanup();
 

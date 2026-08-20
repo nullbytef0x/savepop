@@ -231,11 +231,10 @@
         const files: Record<string, Uint8Array> = {};
         const [format, formatValue] = outputFormat.split(":");
         const audioOnly = format === "mp3";
+        const failedItems: string[] = [];
 
         try {
             for (const [position, entry] of entries.entries()) {
-                statuses = { ...statuses, [entry.id]: "preparing" };
-
                 const request: CobaltSaveRequestBody = {
                     url: entry.url,
                     downloadMode: audioOnly ? "audio" : "auto",
@@ -259,28 +258,59 @@
                     alwaysProxy: true,
                 };
 
-                const response = await API.request(request);
-                if (!response || response.status === "error") {
-                    const message = response?.status === "error"
-                        ? $t(response.error.code, response.error.context)
-                        : $t("error.api.unreachable");
-                    throw new Error(message);
-                }
-                if (response.status !== "tunnel" && response.status !== "redirect") {
-                    throw new Error($t("save.playlist.error.unsupported_response"));
+                const prefix = String(position + 1).padStart(String(entries.length).length, "0");
+                let completedResponse;
+                let mediaBytes: Uint8Array | undefined;
+                let itemError = $t("save.playlist.error.download");
+
+                // YouTube media URLs are short-lived and a processing tunnel
+                // can occasionally close before yielding bytes. Re-running
+                // the API request creates fresh signed URLs for each retry.
+                for (let attempt = 0; attempt < 3; attempt++) {
+                    statuses = { ...statuses, [entry.id]: "preparing" };
+                    progress = { ...progress, [entry.id]: 0 };
+
+                    try {
+                        const response = await API.request(request);
+                        if (!response || response.status === "error") {
+                            itemError = response?.status === "error"
+                                ? $t(response.error.code, response.error.context)
+                                : $t("error.api.unreachable");
+                            throw new Error(itemError);
+                        }
+                        if (response.status !== "tunnel" && response.status !== "redirect") {
+                            itemError = $t("save.playlist.error.unsupported_response");
+                            throw new Error(itemError);
+                        }
+
+                        statuses = { ...statuses, [entry.id]: "downloading" };
+                        mediaBytes = await readResponse(response.url, entry.id);
+                        completedResponse = response;
+                        break;
+                    } catch (error) {
+                        itemError = error instanceof Error ? error.message : itemError;
+                        if (attempt < 2) {
+                            await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+                        }
+                    }
                 }
 
-                statuses = { ...statuses, [entry.id]: "downloading" };
-                const prefix = String(position + 1).padStart(String(entries.length).length, "0");
-                const mediaName = `${prefix} - ${safeFilename(response.filename)}`;
+                if (!completedResponse || !mediaBytes) {
+                    failedItems.push(`${entry.title}: ${itemError}`);
+                    statuses = { ...statuses, [entry.id]: "error" };
+                    continue;
+                }
+
+                const mediaName = `${prefix} - ${safeFilename(completedResponse.filename)}`;
+                files[mediaName] = mediaBytes;
 
                 let subtitleFile: { name: string, bytes: Uint8Array } | undefined;
-                if (response.status === "tunnel" && response.subtitle) {
-                    const subtitleResponse = await fetch(response.subtitle.url);
+                if (completedResponse.status === "tunnel" && completedResponse.subtitle) {
+                    const subtitleResponse = await fetch(completedResponse.subtitle.url);
                     if (!subtitleResponse.ok) {
                         throw new Error(`subtitle download failed with HTTP ${subtitleResponse.status}`);
                     }
-                    const subtitleName = `${prefix} - ${safeFilename(response.subtitle.filename)}`
+                    const subtitleName = `${prefix} - ${safeFilename(completedResponse.subtitle.filename)}`
                         .replace(/\.vtt$/i, ".srt");
                     subtitleFile = {
                         name: subtitleName,
@@ -288,11 +318,14 @@
                     };
                 }
 
-                files[mediaName] = await readResponse(response.url, entry.id);
                 if (subtitleFile) files[subtitleFile.name] = subtitleFile.bytes;
 
                 progress = { ...progress, [entry.id]: 100 };
                 statuses = { ...statuses, [entry.id]: "done" };
+            }
+
+            if (!Object.keys(files).length) {
+                throw new Error(failedItems[0] || $t("save.playlist.error.download"));
             }
 
             const archive = await createZip(files);
@@ -303,6 +336,12 @@
                 { type: "application/zip" },
             );
             downloadFile({ file });
+
+            if (failedItems.length) {
+                errorMessage = $t("save.playlist.error.partial", {
+                    value: String(failedItems.length),
+                });
+            }
         } catch (error) {
             const active = entries.find(entry =>
                 ["preparing", "downloading"].includes(statuses[entry.id])
