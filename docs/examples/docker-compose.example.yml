@@ -22,6 +22,10 @@ services:
             # uncomment the next line & volumes section
             # COOKIE_PATH: "/cookies.json"
 
+            # youtube uses a Netscape cookie export and a current POT provider
+            # YOUTUBE_COOKIES_PATH: "/run/secrets/youtube-cookies.json"
+            # YOUTUBE_POT_PROVIDER_URL: "http://youtube-pot-provider:4416"
+
             # it's recommended to configure bot protection or api keys if the instance is public,
             # see /docs/protect-an-instance.md for more info
 
@@ -34,6 +38,9 @@ services:
         # volumes:
             # - ./cookies.json:/cookies.json
 
+            # mount separately when YOUTUBE_COOKIES_PATH is enabled
+            # - ./cookies.json:/run/secrets/youtube-cookies.json:ro
+
     # watchtower updates the cobalt image automatically
     watchtower:
         image: ghcr.io/containrrr/watchtower
@@ -42,12 +49,12 @@ services:
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
 
-    # if needed, use this image for automatically generating poToken & visitor_data
-    # yt-session-generator:
-    #     image: ghcr.io/imputnet/yt-session-generator:webserver
+    # current content-bound proof-of-origin tokens for yt-dlp
+    # youtube-pot-provider:
+    #     image: brainicism/bgutil-ytdlp-pot-provider:1.3.1
 
     #     init: true
     #     restart: unless-stopped
-    #     container_name: yt-session-generator
+    #     container_name: youtube-pot-provider
     #     labels:
     #       - com.centurylinklabs.watchtower.scope=cobalt

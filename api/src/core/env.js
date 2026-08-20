@@ -1,6 +1,7 @@
-import { Constants } from "youtubei.js";
 import { services } from "../processing/service-config.js";
 import { updateEnv, canonicalEnv, env as currentEnv } from "../config.js";
+import { constants as fsConstants } from "node:fs";
+import { access } from "node:fs/promises";
 
 import { FileWatcher } from "../misc/file-watcher.js";
 import { isURL } from "../misc/utils.js";
@@ -116,12 +117,12 @@ export const loadEnvs = (env = process.env) => {
         allServices,
         enabledServices,
 
-        customInnertubeClient: env.CUSTOM_INNERTUBE_CLIENT,
-        ytSessionServer: env.YOUTUBE_SESSION_SERVER,
-        ytSessionReloadInterval: 300,
-        ytSessionInnertubeClient: env.YOUTUBE_SESSION_INNERTUBE_CLIENT,
+        ytDlpPath: env.YOUTUBE_YTDLP_PATH || "yt-dlp",
+        ytDlpCookiesPath: env.YOUTUBE_COOKIES_PATH,
+        ytDlpPotProviderURL: env.YOUTUBE_POT_PROVIDER_URL,
+        ytDlpTimeout: (env.YOUTUBE_YTDLP_TIMEOUT && parseInt(env.YOUTUBE_YTDLP_TIMEOUT)) || 45000,
+        ytDlpConcurrency: (env.YOUTUBE_YTDLP_CONCURRENCY && parseInt(env.YOUTUBE_YTDLP_CONCURRENCY)) || 4,
         ytAllowBetterAudio: env.YOUTUBE_ALLOW_BETTER_AUDIO !== "0",
-        ytPlayerIds: env.YOUTUBE_PLAYER_ID?.split(',')?.map(p => p.trim()),
 
         // "never" | "session" | "always"
         forceLocalProcessing: env.FORCE_LOCAL_PROCESSING ?? "never",
@@ -153,10 +154,28 @@ export const validateEnvs = async (env) => {
         throw new Error('SO_REUSEPORT is not supported');
     }
 
-    if (env.customInnertubeClient && !Constants.SUPPORTED_CLIENTS.includes(env.customInnertubeClient)) {
-        console.error("CUSTOM_INNERTUBE_CLIENT is invalid. Provided client is not supported.");
-        console.error(`Supported clients are: ${Constants.SUPPORTED_CLIENTS.join(', ')}\n`);
-        throw new Error("Invalid CUSTOM_INNERTUBE_CLIENT");
+    if (env.ytDlpPotProviderURL) {
+        try {
+            new URL(env.ytDlpPotProviderURL);
+        } catch {
+            throw new Error("YOUTUBE_POT_PROVIDER_URL must be a valid URL");
+        }
+    }
+
+    if (env.ytDlpCookiesPath) {
+        try {
+            await access(env.ytDlpCookiesPath, fsConstants.R_OK);
+        } catch {
+            throw new Error(`YOUTUBE_COOKIES_PATH is not readable: ${env.ytDlpCookiesPath}`);
+        }
+    }
+
+    if (env.ytDlpConcurrency < 1 || env.ytDlpConcurrency > 32) {
+        throw new Error("YOUTUBE_YTDLP_CONCURRENCY must be between 1 and 32");
+    }
+
+    if (env.ytDlpTimeout < 5000 || env.ytDlpTimeout > 300000) {
+        throw new Error("YOUTUBE_YTDLP_TIMEOUT must be between 5000 and 300000 milliseconds");
     }
 
     if (env.forceLocalProcessing && !forceLocalProcessingOptions.includes(env.forceLocalProcessing)) {

@@ -18,7 +18,10 @@ async function* readChunks(streamInfo, size) {
 
         const chunkEnd = read + min(CHUNK_SIZE, size - read) - 1n;
         let chunkURL = streamInfo.url;
-        const headers = getHeaders(streamInfo.service);
+        const headers = {
+            ...getHeaders(streamInfo.service),
+            ...Object.fromEntries(streamInfo.headers || []),
+        };
 
         if (streamInfo.service === 'youtube') {
             chunkURL = new URL(chunkURL);

@@ -63,12 +63,13 @@ this document is not final and will expand over time. feel free to improve it!
 ### service-specific vars
 | name                             | value example            |
 |:---------------------------------|:-------------------------|
-| CUSTOM_INNERTUBE_CLIENT          | `IOS`                    |
-| YOUTUBE_SESSION_SERVER           | `http://localhost:8080/` |
-| YOUTUBE_SESSION_INNERTUBE_CLIENT | `WEB_EMBEDDED`           |
-| YOUTUBE_ALLOW_BETTER_AUDIO       | `1`                      |
-| ENABLE_DEPRECATED_YOUTUBE_HLS    | `key`                    |
-| YOUTUBE_PLAYER_ID                | `abcdefff`               |
+| YOUTUBE_COOKIES_PATH             | `/run/secrets/youtube-cookies.json` |
+| YOUTUBE_POT_PROVIDER_URL         | `http://youtube-pot-provider:4416` |
+| YOUTUBE_YTDLP_PATH               | `/opt/python-tools/bin/yt-dlp`     |
+| YOUTUBE_YTDLP_TIMEOUT            | `45000`                           |
+| YOUTUBE_YTDLP_CONCURRENCY        | `4`                               |
+| YOUTUBE_ALLOW_BETTER_AUDIO       | `1`                               |
+| ENABLE_DEPRECATED_YOUTUBE_HLS    | `key`                             |
 
 [*view details*](#service-specific)
 
@@ -90,6 +91,8 @@ the value is a number from 1024 to 65535.
 
 ### COOKIE_PATH
 path to the `cookies.json` file relative to the current working directory of your cobalt instance (usually the main (src/api) folder).
+
+this JSON cookie store is used by non-youtube service adapters. youtube uses a separate Netscape-format file configured through `YOUTUBE_COOKIES_PATH`.
 
 ### PROCESSING_PRIORITY
 `nice` value for ffmpeg subprocesses. available only on unix systems.
@@ -257,30 +260,29 @@ the value is a number, either `0` or `1`.
 ## service-specific
 [*jump to the table*](#service-specific-vars)
 
-### CUSTOM_INNERTUBE_CLIENT
-innertube client that will be used instead of the default one.
+### YOUTUBE_COOKIES_PATH
+path to either Cobalt JSON cookies or a Netscape-format cookie export used by yt-dlp for youtube requests. Cobalt converts JSON entries to a private temporary Netscape jar for each extraction.
 
-the value is a string.
+the file contains account credentials. keep it outside git, mount it read-only, and make it readable only by the api container user.
 
-### YOUTUBE_SESSION_SERVER
-URL to an instance of [yt-session-generator](https://github.com/imputnet/yt-session-generator). used for automatically pulling `poToken` & `visitor_data` for youtube. can be local or remote.
+### YOUTUBE_POT_PROVIDER_URL
+base URL of a [bgutil yt-dlp POT provider](https://github.com/Brainicism/bgutil-ytdlp-pot-provider). the provider generates content-bound proof-of-origin tokens used by current youtube clients.
 
 the value is a URL.
 
-### YOUTUBE_SESSION_INNERTUBE_CLIENT
-innertube client that's compatible with botguard's (web) `poToken` and `visitor_data`.
+### YOUTUBE_YTDLP_PATH
+path to the yt-dlp executable. the docker image configures this automatically.
 
 the value is a string.
 
-### YOUTUBE_PLAYER_ID
-a comma-separated-list of player IDs to use for youtube fetching.
-if defined, cobalt chooses one of them at each client initialization, otherwise
-defaults to the current latest player ID.
+### YOUTUBE_YTDLP_TIMEOUT
+maximum time in milliseconds allowed for a youtube metadata extraction. defaults to `45000`; accepted values are from `5000` to `300000`.
 
-the value is a string.
+### YOUTUBE_YTDLP_CONCURRENCY
+maximum number of yt-dlp metadata processes allowed at once. defaults to `4`; accepted values are from `1` to `32`.
 
 ### YOUTUBE_ALLOW_BETTER_AUDIO
-when set to `1`, cobalt will try to use higher quality audio if user requests it via `youtubeBetterAudio`. will negatively impact the rate limit of a secondary youtube client with a session.
+when set to `1`, cobalt will try to use higher quality audio if the user requests it via `youtubeBetterAudio`. this can make youtube extraction slower and increase request volume.
 
 the value is a number, either `0` or `1`.
 
@@ -289,3 +291,5 @@ the value is a string: `never` (default), `key`, or `always`:
 - when the var is not defined or set to `never`, `youtubeHLS` in POST requests will be ignored.
 - when set to `key`, only requests from api-key clients will be able to use `youtubeHLS` in POST requests.
 - when set to `always`, all requests will be able to use `youtubeHLS` in POST requests.
+
+the yt-dlp youtube adapter currently selects direct HTTP formats and does not use this deprecated option.

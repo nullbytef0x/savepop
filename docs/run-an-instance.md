@@ -28,7 +28,9 @@ if you need help with installing docker, you can find more information here:
     docker compose up -d
     ```
 
-if you want your instance to support services that require authentication to view public content, create `cookies.json` file in the same directory as `docker-compose.yml`. example cookies file [can be found here](examples/cookies.example.json).
+if you want your instance to support non-youtube services that require authentication to view public content, create `cookies.json` in the same directory as `docker-compose.yml`. an example [can be found here](examples/cookies.example.json).
+
+youtube uses yt-dlp and accepts either the `youtube` entry in Cobalt's `cookies.json` or a Netscape-format `cookies.txt`. keep the file out of git, mount it read-only, and set `YOUTUBE_COOKIES_PATH`. current youtube bot checks can also require a content-bound proof-of-origin token, so run the bgutil POT provider on the same docker network and configure `YOUTUBE_POT_PROVIDER_URL`. see the [youtube configuration guide](configure-youtube.md) for a complete example.
 
 cobalt package will update automatically thanks to watchtower.
 

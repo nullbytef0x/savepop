@@ -18,10 +18,13 @@ FROM base AS api
 WORKDIR /app
 
 RUN apk add --no-cache python3 py3-pip \
-    && python3 -m venv /opt/curl-cffi \
-    && /opt/curl-cffi/bin/pip install --no-cache-dir curl_cffi==0.16.0
+    && python3 -m venv /opt/python-tools \
+    && /opt/python-tools/bin/pip install --no-cache-dir \
+        "yt-dlp[default,curl-cffi]==2026.8.19" \
+        "bgutil-ytdlp-pot-provider==1.3.1"
 
-ENV VIMEO_IMPERSONATE_PYTHON="/opt/curl-cffi/bin/python"
+ENV VIMEO_IMPERSONATE_PYTHON="/opt/python-tools/bin/python"
+ENV YOUTUBE_YTDLP_PATH="/opt/python-tools/bin/yt-dlp"
 
 COPY --from=build --chown=node:node /prod/api /app
 COPY --from=build --chown=node:node /app/.git /app/.git
