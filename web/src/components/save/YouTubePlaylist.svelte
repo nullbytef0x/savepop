@@ -1,6 +1,6 @@
 <script lang="ts">
     import { get } from "svelte/store";
-    import { Zip, ZipPassThrough, strToU8 } from "fflate";
+    import { strToU8, zip } from "fflate";
 
     import API from "$lib/api/api";
     import settings from "$lib/state/settings";
@@ -14,7 +14,7 @@
         subtitleLanguages,
         youtubeDubLanguages,
     } from "$lib/settings/audio-sub-language";
-    import { videoQualityOptions } from "$lib/types/settings/v2";
+    import { audioBitrateOptions, videoQualityOptions } from "$lib/types/settings/v2";
 
     import type {
         CobaltSaveRequestBody,
@@ -24,6 +24,7 @@
 
     type EntryStatus = "waiting" | "preparing" | "downloading" | "done" | "error";
     type SubtitleMode = "none" | "embed" | "separate";
+    type PlaylistFormat = `mp4:${string}` | `mp3:${string}`;
 
     let playlist = $state<YouTubePlaylistResponse["playlist"]>();
     let loading = $state(false);
@@ -35,7 +36,7 @@
     let progress = $state<Record<string, number>>({});
 
     const saved = get(settings).save;
-    let quality = $state(saved.videoQuality);
+    let outputFormat = $state<PlaylistFormat>(`mp4:${saved.videoQuality}`);
     let audioLanguage = $state(saved.youtubeDubLang);
     let subtitleMode = $state<SubtitleMode>("none");
     let subtitleLanguage = $state(
@@ -59,6 +60,7 @@
     );
     let audioLanguageNames = $derived(namedYoutubeDubLanguages($t));
     let subtitleLanguageNames = $derived(namedSubtitleLanguages($t));
+    let isAudioOnly = $derived(outputFormat.startsWith("mp3:"));
 
     const formatDuration = (value?: number) => {
         if (!Number.isFinite(value)) return "--:--";
@@ -163,16 +165,8 @@
         }).filter(Boolean).join("\n\n") + "\n";
     };
 
-    const addBytes = (zip: Zip, name: string, bytes: Uint8Array) => {
-        const file = new ZipPassThrough(name);
-        zip.add(file);
-        file.push(bytes, true);
-    };
-
-    const addResponse = async (
-        zip: Zip,
+    const readResponse = async (
         url: string,
-        name: string,
         entryId: string,
     ) => {
         const response = await fetch(url);
@@ -182,48 +176,47 @@
             response.headers.get("content-length")
             || response.headers.get("estimated-content-length")
         ) || 0;
-        const file = new ZipPassThrough(name);
-        zip.add(file);
-
         if (!response.body) {
-            file.push(new Uint8Array(await response.arrayBuffer()), true);
-            return;
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            if (!bytes.byteLength) throw new Error($t("save.playlist.error.empty_file"));
+            return bytes;
         }
 
         const reader = response.body.getReader();
+        const chunks: Uint8Array[] = [];
         let received = 0;
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
             received += value.length;
+            chunks.push(value);
             if (total) {
                 progress = {
                     ...progress,
                     [entryId]: Math.min(99, Math.round(received / total * 100)),
                 };
             }
-            file.push(value, false);
         }
-        file.push(new Uint8Array(), true);
+
+        if (!received) throw new Error($t("save.playlist.error.empty_file"));
+
+        const bytes = new Uint8Array(received);
+        let offset = 0;
+        for (const chunk of chunks) {
+            bytes.set(chunk, offset);
+            offset += chunk.length;
+        }
+        return bytes;
     };
 
-    const createZip = () => {
-        const chunks: BlobPart[] = [];
-        let resolveZip: (value: Blob) => void;
-        let rejectZip: (reason: unknown) => void;
-        const result = new Promise<Blob>((resolve, reject) => {
-            resolveZip = resolve;
-            rejectZip = reject;
+    const createZip = (files: Record<string, Uint8Array>) => {
+        return new Promise<Uint8Array>((resolve, reject) => {
+            zip(files, { level: 0 }, (error, bytes) => {
+                if (error) reject(error);
+                else if (!bytes.byteLength) reject(new Error($t("save.playlist.error.empty_zip")));
+                else resolve(bytes);
+            });
         });
-        const zip = new Zip((error, chunk, final) => {
-            if (error) {
-                rejectZip(error);
-                return;
-            }
-            chunks.push(chunk.slice().buffer as ArrayBuffer);
-            if (final) resolveZip(new Blob(chunks, { type: "application/zip" }));
-        });
-        return { zip, result };
     };
 
     const downloadSelected = async () => {
@@ -235,7 +228,9 @@
         const entries = activePlaylist.entries.filter(entry => selectedIds.includes(entry.id));
         statuses = Object.fromEntries(entries.map(entry => [entry.id, "waiting"]));
         progress = {};
-        const { zip, result } = createZip();
+        const files: Record<string, Uint8Array> = {};
+        const [format, formatValue] = outputFormat.split(":");
+        const audioOnly = format === "mp3";
 
         try {
             for (const [position, entry] of entries.entries()) {
@@ -243,13 +238,21 @@
 
                 const request: CobaltSaveRequestBody = {
                     url: entry.url,
-                    downloadMode: "auto",
-                    videoQuality: quality,
+                    downloadMode: audioOnly ? "audio" : "auto",
+                    audioFormat: audioOnly ? "mp3" : undefined,
+                    audioBitrate: audioOnly
+                        ? formatValue as typeof saved.audioBitrate
+                        : undefined,
+                    videoQuality: audioOnly
+                        ? undefined
+                        : formatValue as typeof saved.videoQuality,
                     youtubeVideoCodec: "h264",
                     youtubeVideoContainer: "mp4",
                     youtubeDubLang: audioLanguage === "original" ? undefined : audioLanguage,
-                    subtitleMode,
-                    subtitleLang: subtitleMode === "none" ? undefined : subtitleLanguage,
+                    subtitleMode: audioOnly ? "none" : subtitleMode,
+                    subtitleLang: audioOnly || subtitleMode === "none"
+                        ? undefined
+                        : subtitleLanguage,
                     filenameStyle: saved.filenameStyle,
                     disableMetadata: saved.disableMetadata,
                     localProcessing: "disabled",
@@ -285,18 +288,18 @@
                     };
                 }
 
-                await addResponse(zip, response.url, mediaName, entry.id);
-                if (subtitleFile) addBytes(zip, subtitleFile.name, subtitleFile.bytes);
+                files[mediaName] = await readResponse(response.url, entry.id);
+                if (subtitleFile) files[subtitleFile.name] = subtitleFile.bytes;
 
                 progress = { ...progress, [entry.id]: 100 };
                 statuses = { ...statuses, [entry.id]: "done" };
             }
 
-            zip.end();
-            const blob = await result;
+            const archive = await createZip(files);
+            const archiveBuffer = archive.slice().buffer as ArrayBuffer;
             const file = new File(
-                [blob],
-                `${safeFilename(activePlaylist.title)}.zip`,
+                [archiveBuffer],
+                `${safeFilename(activePlaylist.title)}${audioOnly ? " - MP3" : ""}.zip`,
                 { type: "application/zip" },
             );
             downloadFile({ file });
@@ -308,7 +311,6 @@
             errorMessage = error instanceof Error
                 ? error.message
                 : $t("save.playlist.error.download");
-            zip.terminate();
         } finally {
             downloading = false;
         }
@@ -344,12 +346,19 @@
             <div class="playlist-controls">
                 <label>
                     <span>{$t("save.playlist.format")}</span>
-                    <select bind:value={quality} disabled={downloading}>
-                        {#each videoQualityOptions as option}
-                            <option value={option}>
-                                {option === "max" ? $t("save.playlist.maximum") : `MP4 ${option}p`}
-                            </option>
-                        {/each}
+                    <select bind:value={outputFormat} disabled={downloading}>
+                        <optgroup label={$t("save.playlist.format.video")}>
+                            {#each videoQualityOptions as option}
+                                <option value={`mp4:${option}`}>
+                                    {option === "max" ? $t("save.playlist.maximum") : `MP4 ${option}p`}
+                                </option>
+                            {/each}
+                        </optgroup>
+                        <optgroup label={$t("save.playlist.format.audio")}>
+                            {#each audioBitrateOptions.filter(option => option !== "8") as option}
+                                <option value={`mp3:${option}`}>MP3 {option} kbps</option>
+                            {/each}
+                        </optgroup>
                     </select>
                 </label>
 
@@ -362,24 +371,26 @@
                     </select>
                 </label>
 
-                <label>
-                    <span>{$t("save.playlist.subtitles")}</span>
-                    <select bind:value={subtitleMode} disabled={downloading}>
-                        <option value="none">{$t("save.playlist.subtitles.none")}</option>
-                        <option value="embed">{$t("save.playlist.subtitles.embed")}</option>
-                        <option value="separate">{$t("save.playlist.subtitles.separate")}</option>
-                    </select>
-                </label>
-
-                {#if subtitleMode !== "none"}
+                {#if !isAudioOnly}
                     <label>
-                        <span>{$t("save.playlist.subtitle_language")}</span>
-                        <select bind:value={subtitleLanguage} disabled={downloading}>
-                            {#each subtitleLanguages.filter(language => language !== "none") as language}
-                                <option value={language}>{subtitleLanguageNames[language]}</option>
-                            {/each}
+                        <span>{$t("save.playlist.subtitles")}</span>
+                        <select bind:value={subtitleMode} disabled={downloading}>
+                            <option value="none">{$t("save.playlist.subtitles.none")}</option>
+                            <option value="embed">{$t("save.playlist.subtitles.embed")}</option>
+                            <option value="separate">{$t("save.playlist.subtitles.separate")}</option>
                         </select>
                     </label>
+
+                    {#if subtitleMode !== "none"}
+                        <label>
+                            <span>{$t("save.playlist.subtitle_language")}</span>
+                            <select bind:value={subtitleLanguage} disabled={downloading}>
+                                {#each subtitleLanguages.filter(language => language !== "none") as language}
+                                    <option value={language}>{subtitleLanguageNames[language]}</option>
+                                {/each}
+                            </select>
+                        </label>
+                    {/if}
                 {/if}
             </div>
 
@@ -422,6 +433,28 @@
                                 <img src={entry.thumbnail} alt="" loading="lazy" />
                             {/if}
                             <span class="duration">{formatDuration(entry.duration)}</span>
+                            {#if statuses[entry.id]}
+                                <span
+                                    class="thumbnail-progress"
+                                    class:waiting={statuses[entry.id] === "waiting"}
+                                    class:preparing={statuses[entry.id] === "preparing"}
+                                    class:downloading={statuses[entry.id] === "downloading"}
+                                    class:done={statuses[entry.id] === "done"}
+                                    class:error={statuses[entry.id] === "error"}
+                                    class:indeterminate={statuses[entry.id] === "downloading" && !progress[entry.id]}
+                                    style={`--card-progress: ${progress[entry.id] || 0}%`}
+                                >
+                                    <strong>
+                                        {statuses[entry.id] === "done"
+                                            ? "✓ 100%"
+                                            : statuses[entry.id] === "error"
+                                                ? "!"
+                                                : progress[entry.id]
+                                                    ? `${progress[entry.id]}%`
+                                                    : $t(`save.playlist.status.${statuses[entry.id]}`)}
+                                    </strong>
+                                </span>
+                            {/if}
                         </span>
                         <span class="video-copy">
                             <strong title={entry.title}>{entry.title}</strong>
@@ -450,7 +483,7 @@
             {/if}
 
             <footer class="playlist-footer">
-                <p>{$t("save.playlist.zip_hint")}</p>
+                <p>{isAudioOnly ? $t("save.playlist.zip_hint_audio") : $t("save.playlist.zip_hint")}</p>
                 <button
                     class="zip-button"
                     onclick={downloadSelected}
@@ -459,7 +492,12 @@
                     <span aria-hidden="true">{downloading ? "…" : "↓"}</span>
                     {downloading
                         ? $t("save.playlist.downloading")
-                        : $t("save.playlist.download_zip", { value: String(selectedIds.length) })}
+                        : $t(
+                            isAudioOnly
+                                ? "save.playlist.download_audio_zip"
+                                : "save.playlist.download_zip",
+                            { value: String(selectedIds.length) },
+                        )}
                 </button>
             </footer>
         {/if}
@@ -670,6 +708,78 @@
     }
 
     .thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+
+    .thumbnail-progress {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        color: white;
+        background: rgba(0, 4, 30, .62);
+        box-shadow: inset 0 0 18px rgba(0, 0, 0, .7);
+        transition: background 180ms ease, box-shadow 180ms ease;
+    }
+
+    .thumbnail-progress::before {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: var(--card-progress);
+        background: rgba(88, 204, 2, .68);
+        content: "";
+        transition: height 240ms ease;
+    }
+
+    .thumbnail-progress strong {
+        position: relative;
+        z-index: 1;
+        padding: 3px 6px;
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 900;
+        text-align: center;
+        text-shadow: 0 1px 3px #000;
+        text-transform: uppercase;
+    }
+
+    .thumbnail-progress.preparing,
+    .thumbnail-progress.downloading {
+        box-shadow:
+            inset 0 0 0 2px var(--color-spark-blue),
+            inset 0 0 24px rgba(28, 176, 246, .56);
+    }
+
+    .thumbnail-progress.indeterminate::before {
+        top: 0;
+        height: 100%;
+        background: linear-gradient(
+            110deg,
+            transparent 20%,
+            rgba(28, 176, 246, .72) 45%,
+            transparent 70%
+        );
+        transform: translateX(-100%);
+        animation: thumbnail-progress-scan 1.15s ease-in-out infinite;
+    }
+
+    .thumbnail-progress.done {
+        background: rgba(28, 90, 0, .66);
+        box-shadow: inset 0 0 0 2px var(--color-eager-green);
+    }
+
+    .thumbnail-progress.error {
+        background: rgba(160, 0, 20, .72);
+        box-shadow: inset 0 0 0 2px var(--red);
+    }
+
+    @keyframes thumbnail-progress-scan {
+        to { transform: translateX(100%); }
+    }
+
     .duration {
         position: absolute;
         right: 4px;

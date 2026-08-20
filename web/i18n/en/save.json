@@ -32,6 +32,8 @@
     "playlist.error.title": "couldn't load this playlist",
     "playlist.retry": "try again",
     "playlist.format": "default format",
+    "playlist.format.video": "video",
+    "playlist.format.audio": "MP3 audio",
     "playlist.maximum": "MP4 maximum quality",
     "playlist.audio_track": "audio track",
     "playlist.subtitles": "subtitles",
@@ -45,7 +47,9 @@
     "playlist.select_video": "select {{value}}",
     "playlist.truncated": "showing the first 100 available videos in this playlist.",
     "playlist.zip_hint": "selected videos are processed one at a time and packed into one ZIP file.",
+    "playlist.zip_hint_audio": "selected audio tracks are processed one at a time and packed into one ZIP file.",
     "playlist.download_zip": "download {{value}} as ZIP",
+    "playlist.download_audio_zip": "download {{value}} MP3s as ZIP",
     "playlist.downloading": "building ZIP…",
     "playlist.status.waiting": "waiting",
     "playlist.status.preparing": "preparing",
@@ -53,5 +57,7 @@
     "playlist.status.done": "added to ZIP",
     "playlist.status.error": "failed",
     "playlist.error.download": "the playlist download failed. please try again.",
+    "playlist.error.empty_file": "the server returned an empty file, so the ZIP was stopped.",
+    "playlist.error.empty_zip": "the generated ZIP was empty. please try again.",
     "playlist.error.unsupported_response": "the server returned a response that playlist downloads cannot process."
 }
