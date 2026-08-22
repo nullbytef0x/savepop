@@ -56,11 +56,12 @@
         || ""
     );
 
-    let downloadable = $derived(validLink($link));
+    let isPlaylist = $derived(isYouTubePlaylistURL($link));
+    let downloadable = $derived(validLink($link) && !isPlaylist);
     let clearVisible = $derived($link && !isLoading);
 
     const submitLink = () => {
-        if (isYouTubePlaylistURL($link)) {
+        if (isPlaylist) {
             revealYouTubePlaylist();
             return;
         }
@@ -200,11 +201,13 @@
         />
 
         <ClearButton click={() => ($link = "")} />
-        <DownloadButton
-            url={$link}
-            bind:disabled={isDisabled}
-            bind:loading={isLoading}
-        />
+        {#if !isPlaylist}
+            <DownloadButton
+                url={$link}
+                bind:disabled={isDisabled}
+                bind:loading={isLoading}
+            />
+        {/if}
     </div>
 
     <div id="action-container">

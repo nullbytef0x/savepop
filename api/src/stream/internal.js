@@ -162,12 +162,20 @@ async function handleChunkedStream(streamInfo, res) {
         signal.addEventListener('abort', abortGenerator);
 
         const stream = Readable.from(generator);
+        stream.on('error', error => {
+            console.error(
+                `[stream/internal] ${streamInfo.service} body failed after ${stream.readableLength || 0} buffered bytes: ${error?.message || String(error)}`
+            );
+        });
 
         if (contentType) res.setHeader('content-type', contentType);
         res.setHeader('content-length', size.toString());
 
         pipe(stream, res, cleanup);
-    } catch {
+    } catch (error) {
+        console.error(
+            `[stream/internal] ${streamInfo.service} chunked stream failed: ${error?.message || String(error)}`
+        );
         cleanup();
     }
 }
@@ -227,7 +235,10 @@ async function handleGenericStream(streamInfo, res) {
         } else {
             pipe(fileResponse.body, res, cleanup);
         }
-    } catch {
+    } catch (error) {
+        console.error(
+            `[stream/internal] ${streamInfo.service} generic stream failed: ${error?.message || String(error)}`
+        );
         closeRequest(streamInfo.controller);
         cleanup();
     }

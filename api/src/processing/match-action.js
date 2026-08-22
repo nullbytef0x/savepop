@@ -37,6 +37,7 @@ export default function({
             separateSubtitles: r.separateSubtitles,
             cover: !disableMetadata ? r.cover : false,
             cropCover: !disableMetadata ? r.cropCover : false,
+            estimatedSize: r.estimatedSize,
         },
         params = {};
 
@@ -271,7 +272,8 @@ export default function({
         // those merges on the server even when local processing is requested.
         const browserProcessingUnsupported =
             (["bilibili", "reddit", "youtube"].includes(host) && params.type === "merge")
-            || (host === "youtube" && ["audio", "mute"].includes(params.type));
+            || (host === "youtube" && ["audio", "mute"].includes(params.type))
+            || (host === "facebook" && ["audio", "mute"].includes(params.type));
         const isPreferredWithExtra =
             localProcessing === "preferred" && extraProcessingTypes.has(params.type);
 

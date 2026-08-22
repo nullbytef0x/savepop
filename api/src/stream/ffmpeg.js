@@ -1,17 +1,12 @@
 import ffmpeg from "ffmpeg-static";
 import { spawn } from "child_process";
 import { create as contentDisposition } from "content-disposition-header";
-import { createWriteStream } from "node:fs";
-import { mkdtemp, rm, stat } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { Readable } from "node:stream";
-import { pipeline } from "node:stream/promises";
 
 import { env } from "../config.js";
 import { destroyInternalStream } from "./manage.js";
 import { hlsExceptions } from "../processing/service-config.js";
 import { closeResponse, pipe, estimateTunnelLength, estimateAudioMultiplier } from "./shared.js";
+import { spawnYtDlpFormat } from "../processing/services/youtube.js";
 
 const metadataTags = new Set([
     "album",
@@ -60,7 +55,7 @@ const getCommand = (args) => {
     return [ffmpeg, args]
 }
 
-const render = async (res, streamInfo, ffargs, estimateMultiplier, cleanupFiles) => {
+const render = async (res, streamInfo, ffargs, estimateMultiplier, inputDownloaders = []) => {
     let process;
     let stopped = false;
     const urls = Array.isArray(streamInfo.urls) ? streamInfo.urls : [streamInfo.urls];
@@ -68,9 +63,12 @@ const render = async (res, streamInfo, ffargs, estimateMultiplier, cleanupFiles)
         if (stopped) return;
         stopped = true;
         killProcess(process);
+        inputDownloaders.forEach(input => {
+            killProcess(input.process);
+            input.cleanup();
+        });
         closeResponse(res);
         urls.map(destroyInternalStream);
-        cleanupFiles?.();
     };
 
     try {
@@ -83,59 +81,62 @@ const render = async (res, streamInfo, ffargs, estimateMultiplier, cleanupFiles)
             windowsHide: true,
             stdio: [
                 'inherit', 'inherit', 'inherit',
-                'pipe'
+                'pipe',
+                ...inputDownloaders.map(() => 'pipe'),
             ],
         });
 
         const [,,, muxOutput] = process.stdio;
 
+        inputDownloaders.forEach((input, index) => {
+            const ffmpegInput = process.stdio[index + 4];
+            input.stream.on('error', shutdown);
+            ffmpegInput.on('error', shutdown);
+            input.process.on('error', shutdown);
+            input.process.on('close', code => {
+                if (code && !stopped) {
+                    console.error(
+                        `[youtube/yt-dlp] format download failed (${code}): ${input.error() || "unknown error"}`
+                    );
+                    shutdown();
+                }
+            });
+            input.stream.pipe(ffmpegInput);
+        });
+
         res.setHeader('Connection', 'keep-alive');
         res.setHeader('Content-Disposition', contentDisposition(streamInfo.filename));
 
-        res.setHeader(
-            'Estimated-Content-Length',
-            await estimateTunnelLength(streamInfo, estimateMultiplier)
-        );
+        const estimatedLength = Number(streamInfo.estimatedSize)
+            || await estimateTunnelLength(streamInfo, estimateMultiplier);
+        if (estimatedLength > 0) {
+            res.setHeader('Estimated-Content-Length', Math.floor(estimatedLength));
+        }
+        res.flushHeaders?.();
 
         pipe(muxOutput, res, shutdown);
 
         process.on('close', shutdown);
         res.on('finish', shutdown);
-    } catch {
+    } catch (error) {
+        console.error(`[stream/ffmpeg] failed: ${error?.message || String(error)}`);
         shutdown();
     }
 }
 
-const materializeInputs = async urls => {
-    const directory = await mkdtemp(join(tmpdir(), "savepop-youtube-merge-"));
-    const paths = [];
+const prepareYoutubeInputs = async (streamInfo, formatIds) => {
+    const downloaders = [];
 
     try {
-        for (const [index, url] of urls.entries()) {
-            const path = join(directory, `input-${index}`);
-            const response = await fetch(url);
-            if (!response.ok || !response.body) {
-                throw new Error(`youtube input ${index + 1} returned HTTP ${response.status}`);
-            }
-
-            await pipeline(
-                Readable.fromWeb(response.body),
-                createWriteStream(path, { mode: 0o600 }),
-            );
-
-            const info = await stat(path);
-            if (!info.size) {
-                throw new Error(`youtube input ${index + 1} was empty`);
-            }
-            paths.push(path);
+        for (const formatId of formatIds) {
+            downloaders.push(await spawnYtDlpFormat(streamInfo.originalRequest?.id, formatId));
         }
-
-        return {
-            paths,
-            cleanup: () => rm(directory, { recursive: true, force: true }).catch(() => {}),
-        };
+        return downloaders;
     } catch (error) {
-        await rm(directory, { recursive: true, force: true }).catch(() => {});
+        downloaders.forEach(input => {
+            killProcess(input.process);
+            input.cleanup();
+        });
         throw error;
     }
 };
@@ -144,20 +145,25 @@ const remux = async (streamInfo, res) => {
     const format = streamInfo.filename.split('.').pop();
     const urls = Array.isArray(streamInfo.urls) ? streamInfo.urls : [streamInfo.urls];
     let inputs = urls;
-    let cleanupFiles;
+    let inputDownloaders = [];
 
     // if the stream type is merge, we expect two URLs
     if (streamInfo.type === 'merge' && urls.length !== 2) {
         return closeResponse(res);
     }
 
-    // Reading two googlevideo tunnels concurrently is unreliable on some
-    // hosts: either input can be closed while FFmpeg is probing the other.
-    // Fetch and verify them sequentially before starting the merge.
-    if (streamInfo.service === 'youtube' && urls.length === 2) {
-        const materialized = await materializeInputs(urls);
-        inputs = materialized.paths;
-        cleanupFiles = materialized.cleanup;
+    // yt-dlp's downloader retries CDN and DNS failures that commonly abort
+    // direct googlevideo streams in Node/FFmpeg. Pipe exact selected formats
+    // into FFmpeg so output starts without first buffering an entire video.
+    if (streamInfo.service === 'youtube') {
+        const formatIds = urls.length === 2
+            ? [
+                streamInfo.originalRequest?.formatIds?.video,
+                streamInfo.originalRequest?.formatIds?.audio,
+            ]
+            : [streamInfo.originalRequest?.formatIds?.video];
+        inputDownloaders = await prepareYoutubeInputs(streamInfo, formatIds);
+        inputs = inputDownloaders.map((_, index) => `pipe:${index + 4}`);
     }
 
     const args = inputs.flatMap(url => ['-i', url]);
@@ -209,12 +215,23 @@ const remux = async (streamInfo, res) => {
 
     args.push('-f', format === 'mkv' ? 'matroska' : format, 'pipe:3');
 
-    await render(res, streamInfo, args, undefined, cleanupFiles);
+    await render(res, streamInfo, args, undefined, inputDownloaders);
 }
 
 const convertAudio = async (streamInfo, res) => {
+    let input = streamInfo.urls;
+    let inputDownloaders = [];
+
+    if (streamInfo.service === 'youtube') {
+        inputDownloaders = await prepareYoutubeInputs(
+            streamInfo,
+            [streamInfo.originalRequest?.formatIds?.audio],
+        );
+        input = 'pipe:4';
+    }
+
     const args = [
-        '-i', streamInfo.urls,
+        '-i', input,
         '-vn',
         ...(streamInfo.audioCopy ? ['-c:a', 'copy'] : ['-b:a', `${streamInfo.audioBitrate}k`]),
     ];
@@ -246,6 +263,7 @@ const convertAudio = async (streamInfo, res) => {
         streamInfo,
         args,
         estimateAudioMultiplier(streamInfo) * 1.1,
+        inputDownloaders,
     );
 }
 

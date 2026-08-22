@@ -4,6 +4,10 @@ import ffmpeg from "./ffmpeg.js";
 import { closeResponse } from "./shared.js";
 import { internalStream } from "./internal.js";
 
+const errorMessage = error => [error?.message, error?.cause?.message]
+    .filter(Boolean)
+    .join(": ") || String(error);
+
 export default async function(res, streamInfo) {
     try {
         switch (streamInfo.type) {
@@ -26,7 +30,10 @@ export default async function(res, streamInfo) {
         }
 
         closeResponse(res);
-    } catch {
+    } catch (error) {
+        console.error(
+            `[stream] ${streamInfo?.service || "unknown"}/${streamInfo?.type || "unknown"} failed: ${errorMessage(error)}`
+        );
         closeResponse(res);
     }
 }

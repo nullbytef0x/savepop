@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -122,6 +122,69 @@ const makeCookieJarCopy = async () => {
         await rm(directory, { recursive: true, force: true }).catch(() => {});
         throw error;
     }
+};
+
+export const spawnYtDlpFormat = async (id, formatId) => {
+    if (!/^[\w-]{11}$/.test(id) || !/^[\w.+-]+$/.test(formatId || "")) {
+        throw new Error("invalid youtube download parameters");
+    }
+
+    const cookieJar = await makeCookieJarCopy();
+    const args = [
+        "--ignore-config",
+        "--no-playlist",
+        "--quiet",
+        "--no-warnings",
+        "--no-progress",
+        "--retries", "10",
+        "--fragment-retries", "10",
+        "--socket-timeout", "20",
+        "--cache-dir", join(tmpdir(), "savepop-yt-dlp-cache"),
+        "--js-runtimes", `node:${process.execPath}`,
+    ];
+
+    if (cookieJar.path) {
+        args.push("--cookies", cookieJar.path);
+    }
+
+    if (env.ytDlpPotProviderURL) {
+        args.push(
+            "--extractor-args",
+            `youtubepot-bgutilhttp:base_url=${env.ytDlpPotProviderURL}`,
+        );
+    }
+
+    args.push(
+        "--format", formatId,
+        "--output", "-",
+        `https://www.youtube.com/watch?v=${id}`,
+    );
+
+    const child = spawn(env.ytDlpPath, args, {
+        env: { ...process.env, NO_COLOR: "1" },
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true,
+    });
+    let stderr = "";
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", chunk => {
+        stderr = `${stderr}${chunk}`.slice(-8192);
+    });
+
+    const cleanup = () => {
+        if (cookieJar.directory) {
+            rm(cookieJar.directory, { recursive: true, force: true }).catch(() => {});
+        }
+    };
+    child.once("close", cleanup);
+    child.once("error", cleanup);
+
+    return {
+        process: child,
+        stream: child.stdout,
+        error: () => cleanError(stderr),
+        cleanup,
+    };
 };
 
 const cleanError = value => String(value || "")
@@ -398,6 +461,8 @@ const audioExtension = format => {
     return format?.ext;
 };
 
+const formatSize = format => Number(format?.filesize || format?.filesize_approx || 0);
+
 const safeHeaders = headers => {
     const allowed = new Set(["accept", "accept-language", "origin", "referer", "user-agent"]);
     return Object.fromEntries(
@@ -468,10 +533,13 @@ export default async function (options) {
     );
 
     if (options.isAudioOnly) {
+        const convertedAudioSize = Number(info.duration || 0)
+            * Number(options.audioBitrate || 128) * 1000 / 8;
         return {
             type: "audio",
             isAudioOnly: true,
             urls: selected.audio.url,
+            estimatedSize: Math.round(convertedAudioSize) || formatSize(selected.audio),
             filenameAttributes,
             fileMetadata,
             bestAudio: audioExtension(selected.audio),
@@ -494,6 +562,7 @@ export default async function (options) {
     return {
         type: "merge",
         urls: [selected.video.url, selected.audio.url],
+        estimatedSize: formatSize(selected.video) + formatSize(selected.audio),
         subtitles: options.subtitleMode !== "separate"
             ? selectedSubtitles?.url
             : undefined,

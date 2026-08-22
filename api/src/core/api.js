@@ -117,7 +117,9 @@ export const runAPI = async (express, app, __dirname, isPrimary = true) => {
             'Ratelimit-Limit',
             'Ratelimit-Policy',
             'Ratelimit-Remaining',
-            'Ratelimit-Reset'
+            'Ratelimit-Reset',
+            'Estimated-Content-Length',
+            'Content-Disposition'
         ],
         ...corsConfig,
     }));
