@@ -134,25 +134,6 @@
                     <p class="hero-description motion-enter motion-enter-3">
                         {$t("home.hero.description")}
                     </p>
-
-                    <div class="download-card motion-enter motion-enter-4">
-                        <div class="download-card-heading">
-                            <div class="download-step" aria-hidden="true">1</div>
-                            <div class="download-title-group">
-                                <span class="download-label">{$t("home.hero.input_label")}</span>
-                                <span class="download-hint">{$t("home.hero.input_hint")}</span>
-                            </div>
-                            <div class="download-icon" aria-hidden="true"><IconDownload /></div>
-                        </div>
-                        <Omnibox />
-                        <p class="download-helper">{$t("home.hero.helper")}</p>
-                    </div>
-
-                    <div class="proof-row motion-enter motion-enter-5">
-                        {#each proofPoints as point}
-                            <span><IconCheck /> {$t(`home.proof.${point}`)}</span>
-                        {/each}
-                    </div>
                 </div>
 
                 <div class="hero-visual motion-enter motion-enter-3" aria-hidden="true">
@@ -177,6 +158,26 @@
                         <div class="mascot-note">
                             <span class="status-dot"></span>
                             {$t("home.mascot.ready")}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="download-card motion-enter motion-enter-4">
+                    <div class="download-card-heading">
+                        <div class="download-step" aria-hidden="true">1</div>
+                        <div class="download-title-group">
+                            <span class="download-label">{$t("home.hero.input_label")}</span>
+                            <span class="download-hint">{$t("home.hero.input_hint")}</span>
+                        </div>
+                        <div class="download-icon" aria-hidden="true"><IconDownload /></div>
+                    </div>
+                    <Omnibox />
+                    <div class="download-card-footer">
+                        <p class="download-helper">{$t("home.hero.helper")}</p>
+                        <div class="proof-row motion-enter motion-enter-5">
+                            {#each proofPoints as point}
+                                <span><IconCheck /> {$t(`home.proof.${point}`)}</span>
+                            {/each}
                         </div>
                     </div>
                 </div>
@@ -318,10 +319,10 @@
     .hero-section {
         position: relative;
         display: flex;
-        min-height: min(860px, calc(100svh - var(--app-header-height)));
+        min-height: min(780px, calc(100svh - var(--app-header-height)));
         flex-direction: column;
         justify-content: center;
-        padding: var(--spacing-64) 24px var(--spacing-48);
+        padding: clamp(28px, 5vh, 52px) 24px var(--spacing-40);
         overflow: hidden;
     }
 
@@ -335,13 +336,14 @@
 
     .hero-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+        grid-template-columns: minmax(0, 1.12fr) minmax(300px, 0.72fr);
         align-items: center;
-        gap: clamp(40px, 7vw, 96px);
+        column-gap: clamp(36px, 7vw, 92px);
+        row-gap: var(--spacing-24);
     }
 
     .hero-copy {
-        max-width: 680px;
+        max-width: 700px;
     }
 
     .hero-eyebrow,
@@ -382,7 +384,7 @@
 
     .hero-description {
         max-width: 620px;
-        margin: var(--spacing-24) 0 var(--spacing-32);
+        margin: var(--spacing-20) 0 0;
         color: var(--color-pencil-gray);
         font-size: clamp(17px, 2vw, 20px);
         font-weight: 600;
@@ -391,10 +393,14 @@
 
     .download-card {
         position: relative;
-        padding: var(--spacing-24);
-        background: color-mix(in srgb, var(--color-storybook-green) 42%, var(--surface-paper-white));
+        grid-column: 1 / -1;
+        width: min(100%, 1040px);
+        margin: 0 auto;
+        padding: var(--spacing-24) clamp(20px, 3vw, 32px);
+        background: color-mix(in srgb, var(--color-storybook-green) 52%, var(--surface-paper-white));
         border: 3px solid var(--color-charcoal);
         border-radius: 24px;
+        box-shadow: 0 9px 0 color-mix(in srgb, var(--color-charcoal) 14%, transparent);
         overflow: hidden;
         isolation: isolate;
         transition: transform 280ms var(--motion-spring), background-color 180ms ease;
@@ -415,8 +421,9 @@
     }
 
     .download-card:focus-within {
-        background: color-mix(in srgb, var(--color-storybook-green) 60%, var(--surface-paper-white));
-        transform: translateY(-3px);
+        background: color-mix(in srgb, var(--color-storybook-green) 68%, var(--surface-paper-white));
+        box-shadow: 0 11px 0 color-mix(in srgb, var(--color-charcoal) 18%, transparent);
+        transform: translateY(-2px);
     }
 
     .download-card-heading {
@@ -482,7 +489,7 @@
     }
 
     .download-helper {
-        margin: var(--spacing-16) 2px 0;
+        margin: 0;
         color: var(--color-pencil-gray);
         font-size: var(--text-caption);
         font-weight: 700;
@@ -492,8 +499,8 @@
     .proof-row {
         display: flex;
         flex-wrap: wrap;
-        gap: var(--spacing-16);
-        margin-top: var(--spacing-16);
+        justify-content: flex-end;
+        gap: 8px 16px;
     }
 
     .proof-row span {
@@ -513,17 +520,25 @@
         stroke-width: 3;
     }
 
+    .download-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--spacing-16);
+        margin-top: var(--spacing-16);
+    }
+
     .hero-visual {
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 520px;
+        min-height: 300px;
     }
 
     .mascot-stage {
         position: relative;
         display: flex;
-        width: min(100%, 480px);
+        width: min(100%, 330px);
         aspect-ratio: 1;
         align-items: center;
         justify-content: center;
@@ -1159,16 +1174,16 @@
             justify-content: center;
         }
 
-        .proof-row {
-            justify-content: center;
-        }
-
         .hero-visual {
-            min-height: 420px;
+            display: none;
         }
 
         .mascot-stage {
             max-width: 390px;
+        }
+
+        .download-card {
+            max-width: 760px;
         }
 
         .steps-list {
@@ -1210,6 +1225,15 @@
         .download-card {
             padding: var(--spacing-16);
             border-radius: 20px;
+        }
+
+        .download-card-footer {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .proof-row {
+            justify-content: flex-start;
         }
 
         .download-card-heading {

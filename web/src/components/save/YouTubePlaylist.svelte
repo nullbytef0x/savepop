@@ -434,28 +434,47 @@
             </div>
 
             <div class="selection-bar">
-                <label class="select-all">
-                    <input
-                        type="checkbox"
-                        checked={allFilteredSelected}
-                        indeterminate={someFilteredSelected && !allFilteredSelected}
-                        onchange={toggleFiltered}
-                        disabled={downloading || !filteredEntries.length}
-                    />
-                    <span>{$t("save.playlist.select_all")}</span>
-                </label>
-                <div class="filter-box">
-                    <span aria-hidden="true">⌕</span>
-                    <input
-                        bind:value={filter}
-                        placeholder={$t("save.playlist.filter")}
-                        aria-label={$t("save.playlist.filter")}
-                        disabled={downloading}
-                    />
+                <div class="selection-tools">
+                    <label class="select-all">
+                        <input
+                            type="checkbox"
+                            checked={allFilteredSelected}
+                            indeterminate={someFilteredSelected && !allFilteredSelected}
+                            onchange={toggleFiltered}
+                            disabled={downloading || !filteredEntries.length}
+                        />
+                        <span>{$t("save.playlist.select_all")}</span>
+                    </label>
+                    <div class="filter-box">
+                        <span aria-hidden="true">⌕</span>
+                        <input
+                            bind:value={filter}
+                            placeholder={$t("save.playlist.filter")}
+                            aria-label={$t("save.playlist.filter")}
+                            disabled={downloading}
+                        />
+                    </div>
                 </div>
-                <span class="selected-count">
-                    {$t("save.playlist.selected", { value: String(selectedIds.length) })}
-                </span>
+                <div class="selection-action">
+                    <span class="selected-count">
+                        {$t("save.playlist.selected", { value: String(selectedIds.length) })}
+                    </span>
+                    <button
+                        class="zip-button"
+                        onclick={downloadSelected}
+                        disabled={downloading || selectedIds.length === 0}
+                    >
+                        <span aria-hidden="true">{downloading ? "…" : "↓"}</span>
+                        {downloading
+                            ? $t("save.playlist.downloading")
+                            : $t(
+                                isAudioOnly
+                                    ? "save.playlist.download_audio_zip"
+                                    : "save.playlist.download_zip",
+                                { value: String(selectedIds.length) },
+                            )}
+                    </button>
+                </div>
             </div>
 
             <div class="playlist-grid">
@@ -523,21 +542,6 @@
 
             <footer class="playlist-footer">
                 <p>{isAudioOnly ? $t("save.playlist.zip_hint_audio") : $t("save.playlist.zip_hint")}</p>
-                <button
-                    class="zip-button"
-                    onclick={downloadSelected}
-                    disabled={downloading || selectedIds.length === 0}
-                >
-                    <span aria-hidden="true">{downloading ? "…" : "↓"}</span>
-                    {downloading
-                        ? $t("save.playlist.downloading")
-                        : $t(
-                            isAudioOnly
-                                ? "save.playlist.download_audio_zip"
-                                : "save.playlist.download_zip",
-                            { value: String(selectedIds.length) },
-                        )}
-                </button>
             </footer>
         {/if}
     </section>
@@ -652,8 +656,20 @@
     .selection-bar {
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: 12px;
-        margin-bottom: 16px;
+        margin-bottom: 18px;
+        padding: 12px;
+        background: color-mix(in srgb, var(--color-storybook-green) 28%, var(--surface-paper-white));
+        border: 2px solid color-mix(in srgb, var(--color-charcoal) 18%, transparent);
+        border-radius: 15px;
+    }
+
+    .selection-tools,
+    .selection-action {
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
 
     .select-all {
@@ -697,10 +713,10 @@
     }
 
     .selected-count {
-        margin-left: auto;
         color: var(--color-pencil-gray);
         font-size: 13px;
         font-weight: 800;
+        white-space: nowrap;
     }
 
     .playlist-grid {
@@ -862,11 +878,12 @@
     .playlist-footer {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center;
         gap: 20px;
         margin-top: 20px;
         padding-top: 18px;
         border-top: 2px solid var(--border-subtle);
+        text-align: center;
     }
 
     .zip-button,
@@ -876,6 +893,10 @@
         background: var(--color-eager-green);
         border-color: var(--color-charcoal);
         font-weight: 900;
+    }
+    .zip-button {
+        min-width: 210px;
+        box-shadow: 0 4px 0 color-mix(in srgb, var(--color-charcoal) 20%, transparent);
     }
     .zip-button span { font-size: 20px; }
     .zip-button:disabled { opacity: .55; cursor: default; }
@@ -896,9 +917,11 @@
     @media (max-width: 760px) {
         #youtube-playlist { border-radius: 20px; }
         .playlist-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .selection-bar { flex-wrap: wrap; }
-        .selected-count { width: 100%; margin-left: 0; }
-        .playlist-footer { align-items: stretch; flex-direction: column; }
+        .selection-bar,
+        .selection-action { align-items: stretch; flex-direction: column; }
+        .selection-tools { width: 100%; }
+        .selection-action { width: 100%; }
+        .selected-count { text-align: center; }
         .zip-button { width: 100%; }
     }
 
@@ -910,7 +933,8 @@
         .playlist-header img { width: 84px; }
         .playlist-controls,
         .playlist-grid { grid-template-columns: 1fr; }
-        .filter-box { order: 3; width: 100%; }
+        .selection-tools { align-items: stretch; flex-direction: column; }
+        .filter-box { width: 100%; }
         .video-card { grid-template-columns: 112px minmax(0, 1fr) 18px; }
     }
 </style>

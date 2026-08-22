@@ -176,6 +176,7 @@
         class:focused={isFocused}
         class:downloadable
         class:clear-visible={clearVisible}
+        class:playlist={isPlaylist}
     >
         <OmniboxIcon loading={isLoading || isBotCheckOngoing} />
 
@@ -204,6 +205,7 @@
         {#if !isPlaylist}
             <DownloadButton
                 url={$link}
+                inactive={!downloadable}
                 bind:disabled={isDisabled}
                 bind:loading={isLoading}
             />
@@ -267,6 +269,7 @@
         border-radius: 16px;
         font-size: 16px;
         flex: 1;
+        padding-right: 6px;
         transition: border-color 180ms ease, background-color 180ms ease, transform 240ms var(--motion-spring);
     }
 
@@ -274,12 +277,8 @@
         display: none;
     }
 
-    #input-container:not(.downloadable) :global(#download-button) {
-        display: none;
-    }
-
     #input-container.clear-visible {
-        padding-right: var(--input-padding);
+        padding-right: 6px;
     }
 
     :global([dir="rtl"]) #input-container.clear-visible {
@@ -288,8 +287,12 @@
     }
 
     #input-container.downloadable {
-        padding-right: 6px;
         border-color: var(--color-eager-green);
+    }
+
+    #input-container.playlist {
+        padding-right: var(--input-padding);
+        border-color: var(--color-spark-blue);
     }
 
     #input-container.downloadable:dir(rtl) {

@@ -11,6 +11,7 @@
     export let url: string;
     export let disabled = false;
     export let loading = false;
+    export let inactive = false;
 
     $: buttonText = ">>";
     $: buttonAltText = $t("a11y.save.download");
@@ -62,7 +63,7 @@
 
 <button
     id="download-button"
-    {disabled}
+    disabled={disabled || inactive}
     on:click={() => {
         hapticSwitch();
         download();
@@ -121,9 +122,10 @@
     }
 
     #download-button:disabled {
-        cursor: unset;
+        cursor: not-allowed;
         color: var(--color-paper-white);
-        opacity: 0.72;
+        background: color-mix(in srgb, var(--color-eager-green) 48%, var(--color-pencil-gray));
+        opacity: 0.68;
     }
 
     @media (hover: hover) {
