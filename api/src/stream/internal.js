@@ -55,14 +55,17 @@ async function* readChunks(streamInfo, size) {
         transplantAttempts = 0;
 
         const expected = min(CHUNK_SIZE, size - read);
-        const received = BigInt(chunk.headers['content-length'] || 0);
-
-        if (received <= 0n || received < expected / 2n) {
-            throw new Error('upstream returned an incomplete chunk');
+        let received = 0n;
+        for await (const data of chunk.body) {
+            received += BigInt(data.length);
+            yield data;
         }
 
-        for await (const data of chunk.body) {
-            yield data;
+        // googlevideo does not consistently include Content-Length on range
+        // responses. Count the actual body bytes instead of rejecting valid
+        // media before reading it.
+        if (received <= 0n || received < expected / 2n) {
+            throw new Error('upstream returned an incomplete chunk');
         }
 
         read += received;
@@ -179,7 +182,8 @@ async function handleGenericStream(streamInfo, res) {
             try {
                 fileResponse = await request(streamInfo.url, {
                     headers: {
-                        ...Object.fromEntries(streamInfo.headers),
+                        ...getHeaders(streamInfo.service),
+                        ...Object.fromEntries(streamInfo.headers || []),
                         host: undefined
                     },
                     dispatcher: streamInfo.dispatcher,

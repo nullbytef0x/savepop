@@ -1,6 +1,12 @@
 import ffmpeg from "ffmpeg-static";
 import { spawn } from "child_process";
 import { create as contentDisposition } from "content-disposition-header";
+import { createWriteStream } from "node:fs";
+import { mkdtemp, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 
 import { env } from "../config.js";
 import { destroyInternalStream } from "./manage.js";
@@ -54,14 +60,18 @@ const getCommand = (args) => {
     return [ffmpeg, args]
 }
 
-const render = async (res, streamInfo, ffargs, estimateMultiplier) => {
+const render = async (res, streamInfo, ffargs, estimateMultiplier, cleanupFiles) => {
     let process;
+    let stopped = false;
     const urls = Array.isArray(streamInfo.urls) ? streamInfo.urls : [streamInfo.urls];
-    const shutdown = () => (
-        killProcess(process),
-        closeResponse(res),
-        urls.map(destroyInternalStream)
-    );
+    const shutdown = () => {
+        if (stopped) return;
+        stopped = true;
+        killProcess(process);
+        closeResponse(res);
+        urls.map(destroyInternalStream);
+        cleanupFiles?.();
+    };
 
     try {
         const args = [
@@ -96,15 +106,61 @@ const render = async (res, streamInfo, ffargs, estimateMultiplier) => {
     }
 }
 
+const materializeInputs = async urls => {
+    const directory = await mkdtemp(join(tmpdir(), "savepop-youtube-merge-"));
+    const paths = [];
+
+    try {
+        for (const [index, url] of urls.entries()) {
+            const path = join(directory, `input-${index}`);
+            const response = await fetch(url);
+            if (!response.ok || !response.body) {
+                throw new Error(`youtube input ${index + 1} returned HTTP ${response.status}`);
+            }
+
+            await pipeline(
+                Readable.fromWeb(response.body),
+                createWriteStream(path, { mode: 0o600 }),
+            );
+
+            const info = await stat(path);
+            if (!info.size) {
+                throw new Error(`youtube input ${index + 1} was empty`);
+            }
+            paths.push(path);
+        }
+
+        return {
+            paths,
+            cleanup: () => rm(directory, { recursive: true, force: true }).catch(() => {}),
+        };
+    } catch (error) {
+        await rm(directory, { recursive: true, force: true }).catch(() => {});
+        throw error;
+    }
+};
+
 const remux = async (streamInfo, res) => {
     const format = streamInfo.filename.split('.').pop();
     const urls = Array.isArray(streamInfo.urls) ? streamInfo.urls : [streamInfo.urls];
-    const args = urls.flatMap(url => ['-i', url]);
+    let inputs = urls;
+    let cleanupFiles;
 
     // if the stream type is merge, we expect two URLs
     if (streamInfo.type === 'merge' && urls.length !== 2) {
         return closeResponse(res);
     }
+
+    // Reading two googlevideo tunnels concurrently is unreliable on some
+    // hosts: either input can be closed while FFmpeg is probing the other.
+    // Fetch and verify them sequentially before starting the merge.
+    if (streamInfo.service === 'youtube' && urls.length === 2) {
+        const materialized = await materializeInputs(urls);
+        inputs = materialized.paths;
+        cleanupFiles = materialized.cleanup;
+    }
+
+    const args = inputs.flatMap(url => ['-i', url]);
 
     if (streamInfo.subtitles) {
         args.push(
@@ -153,7 +209,7 @@ const remux = async (streamInfo, res) => {
 
     args.push('-f', format === 'mkv' ? 'matroska' : format, 'pipe:3');
 
-    await render(res, streamInfo, args);
+    await render(res, streamInfo, args, undefined, cleanupFiles);
 }
 
 const convertAudio = async (streamInfo, res) => {
